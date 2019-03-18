@@ -14,7 +14,7 @@ This is my final project for EECS-433 Pattern Recognition. It's based on this [g
 **Method:**
 *  Get the joints' positions by [OpenPose](https://github.com/ildoonet/tf-pose-estimation).  
 *  Use a window size of 0.5s (5 frames).    
-*  Fill in missing joints by their pos in previous frame.  
+*  Fill in missing joints by their relative pos in previous frame.  
 *  Extract features of joint positions and velocities, and apply PCA.  
 *  Classify by DNN of 3 layers of 100x100x100 (or switching to other classifiers in one line).  
 
