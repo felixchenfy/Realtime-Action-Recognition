@@ -119,7 +119,7 @@ class MyModel(object):
         # self.clf = MLPClassifier((200, 200, 150, 150, 100, 100))
         # self.clf = MLPClassifier((100, 100, 100, 100, 100))
         self.clf = MLPClassifier((100, 100, 100))
-        # self.clf = MLPClassifier((100, 100))
+        # self.clf = MLPClassifier((50, 50, 50))
         # self.clf = MLPClassifier((80, 80, 80, 80))
         # self.clf = self.choose_model("AdaBoost")
 #         self.clf = self.choose_model("Naive Bayes")

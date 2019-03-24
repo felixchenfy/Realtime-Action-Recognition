@@ -352,6 +352,9 @@ class FeatureGenerator(object):
 
                 # -- Output
                 # -- Group features together
+                # print("f_poses: ",f_poses.shape)
+                # print("f_v_joints: ",f_v_joints.shape)
+                # print("f_v_center: ",f_v_center.shape)
                 features = np.concatenate( (f_poses, f_v_joints, f_v_center) )
                 # features = self.deque_to_1darray(self.x_deque)
 
@@ -370,7 +373,7 @@ class FeatureGenerator(object):
     def compute_v_all_joints(self, xnorm_list, step):
         vel = []
         for i in range(0, len(xnorm_list) - step, step):
-            dxdy = xnorm_list[i+step][2:] - xnorm_list[i][2:]
+            dxdy = xnorm_list[i+step][:] - xnorm_list[i][:]
             vel += dxdy.tolist()
         return np.array(vel)
         

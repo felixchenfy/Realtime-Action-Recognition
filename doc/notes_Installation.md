@@ -34,7 +34,7 @@ $ cd models/graph/cmu
 $ bash download.sh  
 
 $ pip install slidingwindow  
-$ pip install opencv-python  
+$ pip install opencv-python  d
 $ pip install opencv-contrib-python  
 $ pip install simplejson  
 
@@ -55,3 +55,6 @@ models/graph/mobilenet_thin/
 # Install keras for training action classification
 $ pip install keras  
 $ pip install h5py # This is for saving keras model to file  
+$ pip install sklearn
+etc.
+
