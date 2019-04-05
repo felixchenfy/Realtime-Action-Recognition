@@ -178,7 +178,7 @@ class SkeletonDetector(object):
     def humans_to_skelsList(self, humans, scale_y = None): # get (x, y * scale_y)
         if scale_y is None:
             scale_y = self.scale_y
-        skelsList = []
+        skeletons = []
         NaN = 0
         for human in humans:
             skeleton = [NaN]*(18*2)
@@ -186,18 +186,14 @@ class SkeletonDetector(object):
                 idx = body_part.part_idx
                 skeleton[2*idx]=body_part.x
                 skeleton[2*idx+1]=body_part.y * scale_y
-            skelsList.append(skeleton)
-        return skelsList
+            skeletons.append(skeleton)
+        return skeletons
     
-    @staticmethod
-    def get_ith_skeleton(skelsList, ith_skeleton=0):
-        res = np.array(skelsList[ith_skeleton])
-        return res
 
 
 # ==============================================================
 
-LENGTH_OF_IMAGE_INFO = 5 # see mylib/myio.py: [cnt_action, cnt_clip, cnt_image, action_type, filepath]
+LENGTH_OF_IMAGE_INFO = 5 # see mylib/myio.py: [cnt_action, cnt_clip, cnt_image, img_action_type, filepath]
 
 class DataLoader_usbcam(object):
     def __init__(self, max_framerate = 10):
@@ -219,8 +215,8 @@ class DataLoader_usbcam(object):
         self.prev_image_time = time.time()
 
         img =cv2.flip(img, 1)
-        action_type = "unknown"
-        return img, action_type, ["none"]*LENGTH_OF_IMAGE_INFO
+        img_action_type = "unknown"
+        return img, img_action_type, ["none"]*LENGTH_OF_IMAGE_INFO
 
 class DataLoader_folder(object):
     def __init__(self, folder, num_skip = 0):
@@ -233,8 +229,8 @@ class DataLoader_folder(object):
     def load_next_image(self):
         img =  cv2.imread(self.folder + self.filenames[self.cnt_image])
         self.cnt_image += self.idx_step
-        action_type = "unknown"
-        return img, action_type, ["none"]*LENGTH_OF_IMAGE_INFO
+        img_action_type = "unknown"
+        return img, img_action_type, ["none"]*LENGTH_OF_IMAGE_INFO
 
 class DataLoader_txtscript(object):
     def __init__(self, SRC_IMAGE_FOLDER, VALID_IMAGES_TXT):
@@ -254,8 +250,8 @@ class DataLoader_txtscript(object):
         self.i += 1
         filename = self.get_filename(self.i)
         img = self.imread(self.i)
-        action_type = self.get_action_type(self.i)
-        return img, action_type, self.get_image_info(self.i)
+        img_action_type = self.get_action_type(self.i)
+        return img, img_action_type, self.get_image_info(self.i)
 
     def imread(self, index):
         return cv2.imread(self.imgs_path + self.get_filename(index))
@@ -277,19 +273,19 @@ class OneObjTracker(object):
     def __init__(self):
         self.reset()
 
-    def track(self, skelsList):
-        N = len(skelsList)
+    def track(self, skeletons):
+        N = len(skeletons)
         if self.prev_skel is None:
             res_idx = 0 # default is zero
         else:
             
             dists = [0]*N
-            for i, skel in enumerate(skelsList):
+            for i, skel in enumerate(skeletons):
                 dists[i] = self.measure_dist(self.prev_skel, skel)
             min_dist = min(dists)
             min_idx = dists.index(min_dist)
             res_idx = min_idx
-        self.prev_skel = skelsList[res_idx].copy()
+        self.prev_skel = skeletons[res_idx].copy()
         return res_idx
 
     def measure_dist(self, prev_skel, curr_skel):
@@ -319,85 +315,100 @@ if __name__ == "__main__":
 
     # -- Classify action
     if DO_INFER_ACTIONS:
-        classifier = MyClassifier(
+        create_classifier = lambda: MyClassifier(
             LOAD_MODEL_PATH,
             action_types = action_labels
             
         )
+        humanID_to_classifier = {} 
     tracker = OneObjTracker() # Currently, only supports for 1 person.
 
     # -- Loop through all images
     ith_img = 1
     while ith_img <= images_loader.num_images:
-        img, action_type, img_info = images_loader.load_next_image()
+        img, img_action_type, img_info = images_loader.load_next_image()
         image_disp = img.copy()
 
         print("\n\n========================================")
         print("\nProcessing {}/{}th image\n".format(ith_img, images_loader.num_images))
 
-        # Detect skeleton
+        # -- Detect all people's skeletons
         humans = my_detector.detect(img)
-        skelsList = my_detector.humans_to_skelsList(humans)
-        skelsList_no_scale_y = my_detector.humans_to_skelsList(humans, scale_y=1.0)
-        if len(skelsList) > 0:
-            # Track (retain only 1 object)
-            target_idx = tracker.track(skelsList)
-            skelsList = [ skelsList[target_idx] ]
+        skeletons = my_detector.humans_to_skelsList(humans)
 
-            # Loop through all skeletons
-            for ith_skel in range(0, len(skelsList)):
-                skeleton = SkeletonDetector.get_ith_skeleton(skelsList, ith_skel)
+        # -- Track people
+        idx_valid_skel, curr_humanIDs = multiperson_tracker.track(skeletons)
 
-                # Classify action
-                if DO_INFER_ACTIONS:
-                    prediced_label = classifier.predict(skeleton)
-                    print("prediced label is :", prediced_label)
-                else:
-                    prediced_label = action_type
-                    print("Ground_truth label is :", prediced_label)
-
-                # Draw skeleton
-                if ith_skel == 0:
-                    my_detector.draw(image_disp, humans)
-                    
-                if DO_INFER_ACTIONS:
-                    # Draw score
-                    if DO_INFER_ACTIONS:
-                        classifier.draw_scores_onto_image(image_disp)
-
-                    # Draw bounding box and action type
-                    drawActionResult(image_disp,
-                        SkeletonDetector.get_ith_skeleton(skelsList_no_scale_y, target_idx),
-                        prediced_label)
+        # -- Recognize action for each person
+        if DO_INFER_ACTIONS:
+            predicted_labels = multipeople_classifier(curr_humanIDs, [skeletons[i] for i in idx_valid_skel])
+            print("prediced label is :", predicted_labels[0])
         else:
-            # tracker.reset() # clear the prev
-            classifier.reset() # clear the deque
+            print("Ground_truth label is :", img_action_type)
 
-        # Write result to txt/png
+
+        # -- Draw
+        my_detector.draw(image_disp, humans) # Draw all skeletons
+        if DO_INFER_ACTIONS: # Draw outer box and label for each person 
+            skeletons_no_skew = my_detector.humans_to_skelsList(humans, scale_y = 1.0)
+            for i, idx_valid in enumerate(idx_valid_skel):
+                drawActionResult(image_disp, skeletons_no_skew[idx_valid], predicted_labels[i])
+
+        if DO_INFER_ACTIONS: # Draw predicting score for only 1 person
+            classifier.draw_scores_onto_image(image_disp)
+
+
+        '''
+
+        list_humanID_and_label = multiperson_action_recognizer.recognize_humans(skeletons, do_recognition = DO_INFER_ACTIONS)
+
+
+
+        for ith_skeleton, id in enumerate(curr_humanIDs):
+            if id not in humanID_to_classifier:
+                humanID_to_classifier[id]=create_classifier()
+            humanID_to_classifier[id].classify(skeletons[ith_skeleton])
+
+            else:    
+                humanID_to_classifier.pop(id)
+
+        
+        # -- Clear: TODO should be put into multipeople_classifier
+        def delete_people_not_in_view(curr_humanIDs, humanID_to_classifier):
+            curr_IDs = set(curr_humanIDs)
+            for prev_ID in humanID_to_classifier.keys:
+                if prev_ID not in curr_IDs: 
+                    humanID_to_classifier.pop(prev_ID)
+        delete_people_not_in_view(curr_humanIDs, humanID_to_classifier)
+
+        '''
+
+
+        # -- Write skeleton.txt and image.png
         if SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE:
-            skel_to_save = []
 
-            for ith_skel in range(0, len(skelsList)):
-                skel_to_save.append(
-                    img_info + SkeletonDetector.get_ith_skeleton(skelsList, ith_skel).tolist()
-                )
+            skel_to_save = [img_info + skeletons[i].tolist() \
+                for i, ID in idx_valid_skel if ID is not None]
+
 
             myio.save_skeletons(SAVE_DETECTED_SKELETON_TO 
                 + myfunc.int2str(ith_img, 5)+".txt", skel_to_save)
             cv2.imwrite(SAVE_DETECTED_SKELETON_IMAGES_TO 
                 + myfunc.int2str(ith_img, 5)+".png", image_disp)
-            if FROM_TXTSCRIPT: # Save source image
+
+            if FROM_TXTSCRIPT or FROM_WEBCAM: # Save source image
                 cv2.imwrite(SAVE_DETECTED_SKELETON_IMAGES_TO
                     + myfunc.int2str(ith_img, 5)+"_src.png", img)
 
-        if 1: # Display
+        # -- Display
+        if 1:
             image_disp = cv2.resize(image_disp,(0,0),fx=1.5,fy=1.5) # resize to make picture bigger
             cv2.imshow("action_recognition", image_disp)
             q = cv2.waitKey(1)
             if q!=-1 and chr(q) == 'q':
                 break
 
-        # Loop
+        # -- Loop
         print("\n")
         ith_img += 1
 

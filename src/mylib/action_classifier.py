@@ -29,7 +29,8 @@ from sklearn.decomposition import PCA
 # Path
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 
-# Classifer for real-time inference -----------------------------------------------
+# Classifer for inference in run_detector.py  -----------------------------------------------
+# This class is for ONE PERSON only. Besides, the model should be using sklearn's Neural Network.
 class MyClassifier(object):
     
     def __init__(self, model_path, action_types):
@@ -41,20 +42,38 @@ class MyClassifier(object):
             print("my Error: failed to load model")
             assert False
         self.action_types = action_types
-        self.THRESHOLD_MIN_SCORE = 0.7
+        self.THRESHOLD_OF_MIN_SCORE = 0.7
 
         # -- Time serials storage
-        self.cnt = 0
-        self.fg = FeatureGenerator()
+        self.feature_generator = FeatureGenerator()
         self.reset()
         
     def reset(self):
-        self.fg.reset()
+        self.feature_generator.reset()
         self.scores_hist = deque()
         self.scores = None
 
-    def insert_and_get_score(self, curr_score):
-        self.scores_hist.append(curr_score)
+    def predict(self, skeleton):
+        LABEL_UNKNOWN = ""
+        is_features_good, features = self.feature_generator.add_curr_skeleton(skeleton)
+
+        if is_features_good:
+            features = features.reshape(-1, features.shape[0]) # convert to 2d array
+
+            curr_scores = self.model.predict_proba(features)[0]
+            self.scores = self.smooth_scores(curr_scores)
+
+            if self.scores.max() < self.THRESHOLD_OF_MIN_SCORE: # If lower than threshold, bad
+                prediced_label = LABEL_UNKNOWN
+            else:
+                predicted_idx = self.scores.argmax()
+                prediced_label = self.action_types[predicted_idx]
+        else:
+            prediced_label = LABEL_UNKNOWN
+        return prediced_label
+
+    def smooth_scores(self, curr_scores):
+        self.scores_hist.append(curr_scores)
         DEQUE_MAX_SIZE = 2
         if len(self.scores_hist)>DEQUE_MAX_SIZE:
             self.scores_hist.popleft()
@@ -72,27 +91,6 @@ class MyClassifier(object):
                 score_mul *= score
             return score_mul
 
-    def predict(self, skeleton):
-        LABEL_UNKNOWN = ""
-        flag, features = self.fg.add_curr_skeleton(skeleton)
-
-        if flag:
-            features = features.reshape(-1, features.shape[0]) # convert to 2d array
-
-            curr_score = self.model.predict_proba(features)[0]
-
-            self.scores = self.insert_and_get_score(curr_score)
-
-            if self.scores.max() < self.THRESHOLD_MIN_SCORE:
-                prediced_label = LABEL_UNKNOWN
-            else:
-                # predicted_idx = scores.index(max(scores))
-                predicted_idx = self.scores.argmax()
-                prediced_label = self.action_types[predicted_idx]
-        else:
-            prediced_label = LABEL_UNKNOWN
-        return prediced_label
-
     def draw_scores_onto_image(self, image_disp):
         if self.scores is None:
             return
@@ -104,7 +102,7 @@ class MyClassifier(object):
                 (txt_x, txt_y),  cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                 (0, 0, 255), 2)
 
-# Classifier for training-----------------------------------------------
+# Classifier for training in jupyter notebook-----------------------------------------------
 class MyModel(object):
     def __init__(self):
         self.init_all_models()
@@ -164,5 +162,5 @@ class MyModel(object):
         n = sum( te_Y_predict == te_Y )
         accu = n / N
         print("Accuracy is ", accu)
-#         print(te_Y_predict)
+        # print(te_Y_predict)
         return accu, te_Y_predict
