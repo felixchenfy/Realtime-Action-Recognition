@@ -1,13 +1,4 @@
 
-'''
-This script runs the method from the github repo of "tf-pose-estimation"
-https://github.com/ildoonet/tf-pose-estimation
-
-press 'q' to quit
-press others to continue testing other images
-
-'''
-
 import numpy as np
 import cv2
 import sys, os, time, argparse, logging
@@ -29,81 +20,62 @@ CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 # INPUTS ==============================================================
 
 def parse_input_method():
-    key_word = "--source"
-    choices = ["webcam", "folder", "txtscript"]
-
     parser = argparse.ArgumentParser()
-    # parser.add_argument(key_word, required=False, default='webcam')
-    parser.add_argument(key_word, required=False, default='folder')
-    inp = parser.parse_args().source
-    return inp
+    parser.add_argument("--source", required=False, default='folder',
+        help="Choose from (1) webcam, (2) folder, or (3) txtscript")
+    return parser.parse_args().source
  
-inp = parse_input_method()
-FROM_WEBCAM = inp == "webcam"
-FROM_TXTSCRIPT = inp == "txtscript"
-FROM_FOLDER = inp == "folder"
-
-def set_source_images_from_folder():
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/exercise/"
-    # SKIP_NUM_IMAGES = 1
-
-    SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/exercise2/"
-    SKIP_NUM_IMAGES = 1
-
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/apple/"
-    # SKIP_NUM_IMAGES = 1
-
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/jump/"
-    # SKIP_NUM_IMAGES = 0
-
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/walk-stand/"
-    # SKIP_NUM_IMAGES = 0
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/walk-stand-1/"
-    # SKIP_NUM_IMAGES = 0
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/walk-1/"
-    # SKIP_NUM_IMAGES = 0
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/sit-1/"
-    # SKIP_NUM_IMAGES = 0
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/sit-2/"
-    # SKIP_NUM_IMAGES = 0
-
-    # SRC_IMAGE_FOLDER = CURR_PATH + "../data_test/mytest/"
-    # SKIP_NUM_IMAGES = 0
-
-    return SRC_IMAGE_FOLDER, SKIP_NUM_IMAGES
+arg_input = parse_input_method()
+FROM_WEBCAM = arg_input == "webcam" # from web camera
+FROM_TXTSCRIPT = arg_input == "txtscript" # from a txt script (used for training)
+FROM_FOLDER = arg_input == "folder" # read images from a folder
 
 # PATHS and SETTINGS =================================
 
 if FROM_WEBCAM:
-    data_idx = "4"
+    save_idx = "4"
     DO_INFER_ACTIONS =  True
     SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = True
+    image_size = "304x240" # 14 fps
+    # image_size = "240x208" # 14 fps
+    OpenPose_MODEL = ["mobilenet_thin", "cmu"][0]
+
 elif FROM_FOLDER:
-    data_idx = "5"
+    save_idx = "5"
     DO_INFER_ACTIONS =  True
     SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = True
+    def set_source_images_from_folder():
+        # return CURR_PATH + "../data_test/apple/", 1
+        # return CURR_PATH + "../data_test/mytest/", 0
+        return "/home/qiancheng/DISK/feiyu/TrainYolo/data_yolo/video_bottle/images/", 2
     SRC_IMAGE_FOLDER, SKIP_NUM_IMAGES = set_source_images_from_folder()
-    data_idx += SRC_IMAGE_FOLDER.split('/')[-2] # plus file name
+    save_idx += SRC_IMAGE_FOLDER.split('/')[-2] # plus file name
+    image_size = "304x240" # 14 fps
+    OpenPose_MODEL = ["mobilenet_thin", "cmu"][1]
+
 elif FROM_TXTSCRIPT: 
-    data_idx = "3"
+    save_idx = "3"
     DO_INFER_ACTIONS =  False # load groundth data, so no need for inference
     SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = True
-    SRC_IMAGE_FOLDER = CURR_PATH + "../data/source_images"+data_idx+"/"
+    SRC_IMAGE_FOLDER = CURR_PATH + "../data/source_images"+save_idx+"/"
     VALID_IMAGES_TXT = "valid_images.txt"
+    image_size = "432x368" # 7 fps
+    OpenPose_MODEL = ["mobilenet_thin", "cmu"][1]
+
 else:
     assert False
 
 if DO_INFER_ACTIONS:
-    LOAD_MODEL_PATH = CURR_PATH + "trained_classifier.pickle"
+    LOAD_MODEL_PATH = CURR_PATH + "../model/trained_classifier.pickle"
     action_labels=  ['jump','kick','punch','run','sit','squat','stand','walk','wave']
 
 if SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE:
     SKELETON_FOLDER = CURR_PATH + "skeleton_data/"
-    SAVE_DETECTED_SKELETON_TO =         CURR_PATH + "skeleton_data/skeletons"+data_idx+"/"
-    SAVE_DETECTED_SKELETON_IMAGES_TO =  CURR_PATH + "skeleton_data/skeletons"+data_idx+"_images/"
-    SAVE_IMAGES_INFO_TO =               CURR_PATH + "skeleton_data/images_info"+data_idx+".txt"
+    SAVE_DETECTED_SKELETON_TO =         CURR_PATH + "skeleton_data/skeletons"+save_idx+"/"
+    SAVE_DETECTED_SKELETON_IMAGES_TO =  CURR_PATH + "skeleton_data/skeletons"+save_idx+"_images/"
+    SAVE_IMAGES_INFO_TO =               CURR_PATH + "skeleton_data/images_info"+save_idx+".txt"
 
-DRAW_FPS = False
+DRAW_FPS = True
 
 # create folders ==============================================================
 if not os.path.exists(SKELETON_FOLDER):
@@ -133,9 +105,18 @@ logger.addHandler(ch)
 # Human pose detection ==============================================================
 
 class SkeletonDetector(object):
-    # This func is copied from https://github.com/ildoonet/tf-pose-estimation
+    # This func is mostly copied from https://github.com/ildoonet/tf-pose-estimation
 
-    def __init__(self, model="cmu"):
+    def __init__(self, model=None, image_size=None):
+        
+        if model is None:
+            model = "cmu"
+
+        if image_size is None:
+            image_size = "432x368" # 7 fps
+            # image_size = "336x288"
+            # image_size = "304x240" # 14 fps
+
         models = set({"mobilenet_thin", "cmu"})
         self.model = model if model in models else "mobilenet_thin"
         # parser = argparse.ArgumentParser(description='tf-pose-estimation run')
@@ -150,10 +131,7 @@ class SkeletonDetector(object):
 
         # args = parser.parse_args()
 
-        # w, h = model_wh(args.resize)
-        w, h = model_wh("432x368")
-        # w, h = model_wh("336x288")
-        # w, h = model_wh("304x240")
+        w, h = model_wh(image_size)
         if w == 0 or h == 0:
             e = TfPoseEstimator(get_graph_path(self.model),
                                 target_size=(432, 368))
@@ -191,9 +169,10 @@ class SkeletonDetector(object):
         # logger.debug('show+')
         if DRAW_FPS:
             cv2.putText(img_disp,
-                        "Processing speed: {:.1f} fps".format( (1.0 / (time.time() - self.fps_time) )),
-                        (10, 20),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                        (0, 0, 255), 1)
+                        # "Processing speed: {:.1f} fps".format( (1.0 / (time.time() - self.fps_time) )),
+                        "fps = {:.1f}".format( (1.0 / (time.time() - self.fps_time) )),
+                        (10, 30),  cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (0, 0, 255), 2)
         self.fps_time = time.time()
 
     def humans_to_skelsList(self, humans, scale_y = None): # get (x, y * scale_y)
@@ -218,15 +197,27 @@ class SkeletonDetector(object):
 
 # ==============================================================
 
-LENGTH_OF_IMAGE_INFO = 5
+LENGTH_OF_IMAGE_INFO = 5 # see mylib/myio.py: [cnt_action, cnt_clip, cnt_image, action_type, filepath]
 
 class DataLoader_usbcam(object):
-    def __init__(self):
+    def __init__(self, max_framerate = 10):
         self.cam = cv2.VideoCapture(0)
         self.num_images = 9999999
+        self.frame_period = 1.0/max_framerate*0.999
+        self.prev_image_time = time.time() - self.frame_period
+
+    def wait_for_framerate(self):
+        t_curr = time.time()
+        t_wait = self.frame_period - (t_curr - self.prev_image_time)
+        if t_wait > 0:
+            time.sleep(t_wait)
 
     def load_next_image(self):
+        self.wait_for_framerate()
+        
         ret_val, img = self.cam.read()
+        self.prev_image_time = time.time()
+
         img =cv2.flip(img, 1)
         action_type = "unknown"
         return img, action_type, ["none"]*LENGTH_OF_IMAGE_INFO
@@ -244,7 +235,6 @@ class DataLoader_folder(object):
         self.cnt_image += self.idx_step
         action_type = "unknown"
         return img, action_type, ["none"]*LENGTH_OF_IMAGE_INFO
-
 
 class DataLoader_txtscript(object):
     def __init__(self, SRC_IMAGE_FOLDER, VALID_IMAGES_TXT):
@@ -314,7 +304,7 @@ class OneObjTracker(object):
 if __name__ == "__main__":
  
     # -- Detect sekelton
-    my_detector = SkeletonDetector()
+    my_detector = SkeletonDetector(OpenPose_MODEL, image_size)
 
     # -- Load images
     if FROM_WEBCAM:
@@ -401,8 +391,8 @@ if __name__ == "__main__":
                     + myfunc.int2str(ith_img, 5)+"_src.png", img)
 
         if 1: # Display
-            cv2.imshow("action_recognition", 
-                cv2.resize(image_disp,(0,0),fx=1.5,fy=1.5))
+            image_disp = cv2.resize(image_disp,(0,0),fx=1.5,fy=1.5) # resize to make picture bigger
+            cv2.imshow("action_recognition", image_disp)
             q = cv2.waitKey(1)
             if q!=-1 and chr(q) == 'q':
                 break

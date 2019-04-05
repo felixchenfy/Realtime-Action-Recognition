@@ -29,7 +29,7 @@ from sklearn.decomposition import PCA
 # Path
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 
-# Feiyu's for Inference -----------------------------------------------
+# Classifer for real-time inference -----------------------------------------------
 class MyClassifier(object):
     
     def __init__(self, model_path, action_types):
@@ -98,13 +98,13 @@ class MyClassifier(object):
             return
         for i, label in enumerate( self.action_types ):
             txt_x = 20
-            txt_y = 60 + i*30
+            txt_y = 70 + i*30
             cv2.putText(image_disp,
                 "{:<9}: {:.2f}".format(label, self.scores[i]),
                 (txt_x, txt_y),  cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                 (0, 0, 255), 2)
 
-# Define classifier for training-----------------------------------------------
+# Classifier for training-----------------------------------------------
 class MyModel(object):
     def __init__(self):
         self.init_all_models()
@@ -112,21 +112,13 @@ class MyModel(object):
         # self.clf = self.choose_model("Nearest Neighbors")
         # self.clf = self.choose_model("Linear SVM")
         # self.clf = self.choose_model("RBF SVM")
-#         self.clf = self.choose_model("Gaussian Process")
+        # self.clf = self.choose_model("Gaussian Process")
         # self.clf = self.choose_model("Decision Tree")
         # self.clf = self.choose_model("Random Forest")
-        # self.clf = MLPClassifier((200,200,200,200,200,200)) # 99, 97
-        # self.clf = MLPClassifier((200, 200, 150, 150, 100, 100))
-        # self.clf = MLPClassifier((100, 100, 100, 100, 100))
-        self.clf = MLPClassifier((100, 100, 100))
-        # self.clf = MLPClassifier((50, 50, 50))
-        # self.clf = MLPClassifier((80, 80, 80, 80))
-        # self.clf = self.choose_model("AdaBoost")
-#         self.clf = self.choose_model("Naive Bayes")
-        # self.clf = self.choose_model("QDA")
-        
+        self.clf = self.choose_model("Neural Net")
 
     def choose_model(self, name):
+        self.model_name = name
         idx = self.names.index(name)
         return self.classifiers[idx]
             
@@ -134,7 +126,7 @@ class MyModel(object):
         self.names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
              "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
              "Naive Bayes", "QDA"]
-
+        self.model_name = None
         self.classifiers = [
             KNeighborsClassifier(5),
             SVC(kernel="linear", C=10.0),
@@ -142,7 +134,7 @@ class MyModel(object):
             GaussianProcessClassifier(1.0 * RBF(1.0)),
             DecisionTreeClassifier(max_depth=5),
             RandomForestClassifier(max_depth=30, n_estimators=100, max_features="auto"),
-            MLPClassifier(alpha=1),
+            MLPClassifier((50, 50, 50)), # Neural Net
             AdaBoostClassifier(),
             GaussianNB(),
             QuadraticDiscriminantAnalysis()]
