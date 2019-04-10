@@ -20,7 +20,7 @@ CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 if __name__=="__main__":
     # Parameters -------------------------------------------
 
-    data_idx = "3"
+    data_idx = "5"
 
     read_from = "../skeleton_data/skeletons"+data_idx+"/"
     output_to = "../skeleton_data/skeletons"+data_idx+"_info.txt"

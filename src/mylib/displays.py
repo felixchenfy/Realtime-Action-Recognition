@@ -72,7 +72,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
 # Drawings ==============================================================
 
-def drawActionResult(img_display, skeleton, str_action_type):
+def drawActionResult(img_display, id, skeleton, str_action_type):
     font = cv2.FONT_HERSHEY_SIMPLEX 
 
     minx = 999
@@ -94,7 +94,7 @@ def drawActionResult(img_display, skeleton, str_action_type):
     miny = int(miny * img_display.shape[0])
     maxx = int(maxx * img_display.shape[1])
     maxy = int(maxy * img_display.shape[0])
-    print(minx, miny, maxx, maxy)
+    #print(minx, miny, maxx, maxy)
     
     # Draw bounding box
     # drawBoxToImage(img_display, [minx, miny], [maxx, maxy])
@@ -111,4 +111,4 @@ def drawActionResult(img_display, skeleton, str_action_type):
     TEST_ROW = int( miny - 10 * box_scale)
 
     img_display = cv2.putText(
-        img_display, str_action_type, (TEST_COL, TEST_ROW), font, fontsize, (0, 0, 255), linewidth, cv2.LINE_AA)
+        img_display, "P"+str(id)+":"+str_action_type, (TEST_COL, TEST_ROW), font, fontsize, (0, 0, 255), linewidth, cv2.LINE_AA)
