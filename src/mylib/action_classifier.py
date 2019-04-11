@@ -33,16 +33,17 @@ CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 # This class is for ONE PERSON only. Besides, the model should be using sklearn's Neural Network.
 class MyClassifier(object):
     
-    def __init__(self, model_path, action_types):
+    def __init__(self, model_path, action_types, human_id=0):
         
         # -- Settings
+        self.human_id = human_id
         with open(model_path, 'rb') as f:
             self.model = pickle.load(f)
         if self.model is None:
             print("my Error: failed to load model")
             assert False
         self.action_types = action_types
-        self.THRESHOLD_OF_MIN_SCORE = 0.7
+        self.THRESHOLD_SCORE_FOR_DISP = 0.5
 
         # -- Time serials storage
         self.feature_generator = FeatureGenerator()
@@ -63,7 +64,7 @@ class MyClassifier(object):
             curr_scores = self.model.predict_proba(features)[0]
             self.scores = self.smooth_scores(curr_scores)
 
-            if self.scores.max() < self.THRESHOLD_OF_MIN_SCORE: # If lower than threshold, bad
+            if self.scores.max() < self.THRESHOLD_SCORE_FOR_DISP: # If lower than threshold, bad
                 prediced_label = LABEL_UNKNOWN
             else:
                 predicted_idx = self.scores.argmax()
@@ -77,6 +78,7 @@ class MyClassifier(object):
         DEQUE_MAX_SIZE = 2
         if len(self.scores_hist)>DEQUE_MAX_SIZE:
             self.scores_hist.popleft()
+
         if 1: # Use sum
             score_sums = np.zeros((len(self.action_types),))
             for score in self.scores_hist:
@@ -94,13 +96,24 @@ class MyClassifier(object):
     def draw_scores_onto_image(self, image_disp):
         if self.scores is None:
             return
-        for i, label in enumerate( self.action_types ):
-            txt_x = 20
-            txt_y = 70 + i*30
-            cv2.putText(image_disp,
-                "{:<9}: {:.2f}".format(label, self.scores[i]),
-                (txt_x, txt_y),  cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                (0, 0, 255), 2)
+
+        for i in range(-1, len(self.action_types)):
+
+            FONT_SIZE = 0.8
+            TXT_X = 20
+            TXT_Y = 150 + i*30
+            COLOR_INTENSITY = 255
+
+            if i == -1:
+                s = "P{}:".format(self.human_id)
+            else:
+                label = self.action_types[i]
+                s = "{:<7}: {:.2f}".format(label, self.scores[i])
+                COLOR_INTENSITY *= (0.0 + 1.0 * self.scores[i])**0.5
+
+            cv2.putText(image_disp, text=s, org=(TXT_X, TXT_Y),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=FONT_SIZE,
+                color=(0, 0, int(COLOR_INTENSITY)), thickness=2)
 
 # Classifier for training in jupyter notebook-----------------------------------------------
 class MyModel(object):

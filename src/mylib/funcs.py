@@ -19,7 +19,7 @@ class Tracker(object):
     def __init__(self):
         self.dict_id2skeleton = {}
         self.cnt_humans = 0
-        pass 
+        self.MAX_HUMAN = 5
 
     def get_neck(self, skeleton):
         x, y = skeleton[2], skeleton[3]
@@ -39,7 +39,6 @@ class Tracker(object):
     def track(self, curr_skels):
         # type: curr_skels: list[list[]]
         
-        MAX_HUMAN = 5
         curr_skels = self.sort_skeletons_by_neck(curr_skels)
         N = len(curr_skels)
         
@@ -60,7 +59,7 @@ class Tracker(object):
             unmatched_idx = range(N)
 
         # Add unmatched skeletons (which are new skeletons) to the list
-        num_humans_to_add = min(MAX_HUMAN - len(good_matches), len(unmatched_idx))
+        num_humans_to_add = min(self.MAX_HUMAN - len(good_matches), len(unmatched_idx))
         for i in range(num_humans_to_add):
             self.cnt_humans += 1
             self.dict_id2skeleton[self.cnt_humans] = np.array(curr_skels[unmatched_idx[i]])

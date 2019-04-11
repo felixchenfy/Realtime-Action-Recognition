@@ -193,10 +193,29 @@ class SkeletonDetector(object):
 
 
 # ==============================================================
+
+def add_white_region_to_left_of_image(image_disp):
+    r, c, d = image_disp.shape
+    blank = 255 + np.zeros((r, int(c/4), d), np.uint8)
+    image_disp = np.hstack((blank, image_disp))
+    return image_disp
+
+def remove_skeletons_with_few_joints(skeletons):
+    good_skeletons = []
+    for skeleton in skeletons:
+        px = skeleton[2:2+13*2:2]
+        py = skeleton[3:2+13*2:2]
+        num_valid_joints = len([x for x in px if x!=0])
+        num_leg_joints = len([x for x in px[-6:] if x!=0])
+        total_size = 0.5 * (max(px) - min(px) + max(py) - min(py))
+        if num_valid_joints >= 5 and total_size >= 0.2 and num_leg_joints >= 2: 
+            good_skeletons.append(skeleton)
+    return good_skeletons
+
 class MultiPersonClassifier(object):
     def __init__(self, LOAD_MODEL_PATH, action_labels):
-        self.create_classifier = lambda: MyClassifier(
-            LOAD_MODEL_PATH, action_types = action_labels)
+        self.create_classifier = lambda human_id: MyClassifier(
+            LOAD_MODEL_PATH, action_types = action_labels, human_id=human_id)
         self.dict_id2clf = {} # human id -> classifier of this person
 
     def classify(self, dict_id2skeleton):
@@ -213,13 +232,13 @@ class MultiPersonClassifier(object):
         for id, skeleton in dict_id2skeleton.items():
             
             if id not in self.dict_id2clf: # add this new person
-                self.dict_id2clf[id] = self.create_classifier()
+                self.dict_id2clf[id] = self.create_classifier(id)
             
             classifier = self.dict_id2clf[id]
             id2label[id] = classifier.predict(skeleton) # predict label
-            print("\n\nPredicting label for human{}".format(id))
-            print("  skeleton: {}".format(skeleton))
-            print("  label: {}".format(id2label[id]))
+            # print("\n\nPredicting label for human{}".format(id))
+            # print("  skeleton: {}".format(skeleton))
+            # print("  label: {}".format(id2label[id]))
 
         return id2label
 
@@ -265,6 +284,7 @@ if __name__ == "__main__":
         # -- Detect all people's skeletons
         humans = my_detector.detect(img)
         skeletons, scale_y = my_detector.humans_to_skelsList(humans)
+        skeletons = remove_skeletons_with_few_joints(skeletons)
 
         # -- Track people
         dict_id2skeleton = multiperson_tracker.track(skeletons) # int id -> np.array() skeleton
@@ -284,6 +304,7 @@ if __name__ == "__main__":
 
         # -- Draw
         my_detector.draw(image_disp, humans) # Draw all skeletons
+        
         if len(dict_id2skeleton): 
             
             # Draw outer box and label for each person 
@@ -293,9 +314,13 @@ if __name__ == "__main__":
                 # print("Drawing skeleton: ", dict_id2skeleton[id], "with label:", label, ".")
                 drawActionResult(image_disp, id, skeleton, label)
 
-            # Draw predicting score for only 1 person (not using for)
-            if DO_INFER_ACTIONS:
-                multipeople_classifier.get(id='min').draw_scores_onto_image(image_disp)
+
+        # Add blank to the left for displaying prediction scores of each class
+        image_disp = add_white_region_to_left_of_image(image_disp)
+
+        # Draw predicting score for only 1 person (not using for)
+        if DO_INFER_ACTIONS and len(dict_id2skeleton):
+            multipeople_classifier.get(id='min').draw_scores_onto_image(image_disp)
 
 
         # -- Write skeleton.txt and image.png
@@ -316,8 +341,11 @@ if __name__ == "__main__":
 
         # -- Display
         if 1:
-            image_disp = cv2.resize(image_disp, (0,0), fx=1.5, fy=1.5) # resize to make picture bigger
-            cv2.imshow("action_recognition", image_disp)
+            if ith_img == 1:
+                window_name = "action_recognition"
+                cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+            # image_disp = cv2.resize(image_disp, (0,0), fx=1.5, fy=1.5) # resize to make picture bigger
+            cv2.imshow(window_name, image_disp)
             q = cv2.waitKey(1)
             if q != -1 and chr(q) == 'q':
                 break

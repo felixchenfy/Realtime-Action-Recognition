@@ -104,7 +104,7 @@ def drawActionResult(img_display, id, skeleton, str_action_type):
 
 
     box_scale = max(0.5, min(2.0, (1.0*(maxx - minx)/img_display.shape[1] / (0.3))**(0.5) ))
-    fontsize = 1.5 * box_scale
+    fontsize = 1.4 * box_scale
     linewidth = int(math.ceil(3 * box_scale))
 
     TEST_COL = int( minx + 5 * box_scale)
