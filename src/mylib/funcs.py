@@ -26,6 +26,7 @@ class Tracker(object):
         return x, y
 
     def sort_skeletons_by_neck(self, skeletons):
+        # Skeletons are sorted by which is nearer to the image center 
         calc_dist = lambda p1, p2: ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
         def cost(skeleton):
             x1, y1 = self.get_neck(skeleton)
@@ -38,6 +39,7 @@ class Tracker(object):
 
     def track(self, curr_skels):
         # type: curr_skels: list[list[]]
+        # rtype: a dict, mapping human id to his/her skeleton
         
         curr_skels = self.sort_skeletons_by_neck(curr_skels)
         N = len(curr_skels)
@@ -72,8 +74,10 @@ class Tracker(object):
         #cost = lambda x1, x2: np.linalg.norm(x1-x2) 
         calc_dist = lambda p1, p2: ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
         def cost(sk1, sk2): 
+
+            # neck, shoulder, elbow, hip, knee
             joints = np.array([2,3, 4,5,6,7, 10,11,12,13, 16,17,18,19, 22,23,24,25])
-            # sk1, sk2 = sk1[2:2+13*2], sk2[2:2+13*2]
+            
             sk1, sk2 = sk1[joints], sk2[joints]
             valid_idx = np.logical_and(sk1!=0, sk2!=0)
             sk1, sk2 = sk1[valid_idx], sk2[valid_idx]

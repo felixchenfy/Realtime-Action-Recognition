@@ -10,10 +10,11 @@ import mylib.io as myio
 from mylib.displays import drawActionResult
 import mylib.funcs as myfunc
 import mylib.feature_proc as myproc 
-from mylib.action_classifier import MyClassifier
+from mylib.action_classifier import ClassifierOnlineTest
 from mylib.action_classifier import * # Import sklearn related libraries
 
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
+DRAW_FPS = False
 
 
 # INPUTS ==============================================================
@@ -31,13 +32,20 @@ FROM_FOLDER = arg_input == "folder" # read images from a folder
 
 # PATHS and SETTINGS =================================
 
+# Choose image_size from: ["640x480", "432x368", "304x240", "240x208", "208x160"]
+# The higher, the better. But slower.
+
 if FROM_WEBCAM:
     folder_suffix = "3"
     DO_INFER_ACTIONS =  True
-    SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = True
-    image_size = "304x240" # 14 fps
-    # image_size = "240x208" # > 14 fps
-    OpenPose_MODEL = ["mobilenet_thin", "cmu"][0]
+    SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = False
+    if 0: 
+        image_size = "432x368" # 10 fps
+        OpenPose_MODEL = ["mobilenet_thin", "cmu"][0]
+    else:
+        image_size = "240x208" # 10 fps
+        OpenPose_MODEL = ["mobilenet_thin", "cmu"][1]
+
 
 elif FROM_FOLDER:
     folder_suffix = "4"
@@ -45,8 +53,6 @@ elif FROM_FOLDER:
     SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = True
     def set_source_images_from_folder():
         return CURR_PATH + "../data_test/apple/", 1
-        # return CURR_PATH + "../data_test/mytest/", 0
-        # return "/home/qiancheng/DISK/feiyu/TrainYolo/data_yolo/video_bottle/images/", 2
     SRC_IMAGE_FOLDER, SKIP_NUM_IMAGES = set_source_images_from_folder()
     folder_suffix += SRC_IMAGE_FOLDER.split('/')[-2] # plus folder name
     # image_size = "304x240"
@@ -75,15 +81,13 @@ if SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE:
     SAVE_DETECTED_SKELETON_IMAGES_TO =  CURR_PATH + "skeleton_data/skeletons"+folder_suffix+"_images/"
     SAVE_IMAGES_INFO_TO =               CURR_PATH + "skeleton_data/images_info"+folder_suffix+".txt"
 
-DRAW_FPS = True
-
-# create folders for saving results ==============================================================
-if not os.path.exists(SKELETON_FOLDER):
-    os.makedirs(SKELETON_FOLDER)
-if not os.path.exists(SAVE_DETECTED_SKELETON_TO):
-    os.makedirs(SAVE_DETECTED_SKELETON_TO)
-if not os.path.exists(SAVE_DETECTED_SKELETON_IMAGES_TO):
-    os.makedirs(SAVE_DETECTED_SKELETON_IMAGES_TO)
+    # create folders for saving results
+    if not os.path.exists(SKELETON_FOLDER):
+        os.makedirs(SKELETON_FOLDER)
+    if not os.path.exists(SAVE_DETECTED_SKELETON_TO):
+        os.makedirs(SAVE_DETECTED_SKELETON_TO)
+    if not os.path.exists(SAVE_DETECTED_SKELETON_IMAGES_TO):
+        os.makedirs(SAVE_DETECTED_SKELETON_IMAGES_TO)
 
 # Openpose include files==============================================================
 
@@ -207,14 +211,14 @@ def remove_skeletons_with_few_joints(skeletons):
         py = skeleton[3:2+13*2:2]
         num_valid_joints = len([x for x in px if x!=0])
         num_leg_joints = len([x for x in px[-6:] if x!=0])
-        total_size = 0.5 * (max(px) - min(px) + max(py) - min(py))
+        total_size = max(py) - min(py)
         if num_valid_joints >= 5 and total_size >= 0.2 and num_leg_joints >= 2: 
             good_skeletons.append(skeleton)
     return good_skeletons
 
 class MultiPersonClassifier(object):
     def __init__(self, LOAD_MODEL_PATH, action_labels):
-        self.create_classifier = lambda human_id: MyClassifier(
+        self.create_classifier = lambda human_id: ClassifierOnlineTest(
             LOAD_MODEL_PATH, action_types = action_labels, human_id=human_id)
         self.dict_id2clf = {} # human id -> classifier of this person
 

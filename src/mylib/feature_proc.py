@@ -69,51 +69,20 @@ class ProcFtr(object):
         x = x.copy()
         return x[2:2+13*2]
 
-    @staticmethod
-    def drop_arms_and_legs(x):
-        N = len(ARMS_LEGS)
-        thre = 0.3 
-        ra = np.random.random()
-        if ra<thre:
-            jonit_idx = int((ra / thre)*N)
-            set_joint(x, joint_idx, NotANum, NotANum)
+    # @staticmethod
+    # def drop_arms_and_legs(x):
+    #     N = len(ARMS_LEGS)
+    #     thre = 0.3 
+    #     ra = np.random.random()
+    #     if ra<thre:
+    #         jonit_idx = int((ra / thre)*N)
+    #         set_joint(x, joint_idx, NotANum, NotANum)
 
     @staticmethod
     def check_valid(x):
         def check_(x0, idx):
             return x0[idx]!=0 and x0[idx+1]!=0 
         return check_(x, NECK) and (check_(x, L_THIGH) or check_(x, R_THIGH))
-
-
-    # @staticmethod
-    # def normalize(x_input):
-        
-    #     lx = []
-    #     ly = []
-    #     N = len(x_input)
-    #     i = 0
-    #     while i<N:
-    #         lx.append(x_input[i])
-    #         ly.append(x_input[i+1])
-    #         i+=2
-    #     lx = np.array(lx)
-    #     ly = np.array(ly)
-    #     lx -= np.mean(lx)
-    #     ly -= np.mean(ly)
-
-    #     dlx = np.max(lx) - np.min(lx)
-    #     lx /= 1 if dlx==0 else dlx
-
-    #     dly = np.max(ly) - np.min(ly)
-    #     ly /= 1 if dly==0 else dly
-        
-    #     # save it back to x
-    #     x_new = []
-    #     for i in range(int(N/2)):
-    #         x_new.append(lx[i])
-    #         x_new.append(ly[i])
-    #     return x_new
-
 
     # -- Get height of the body
     @staticmethod
@@ -230,62 +199,6 @@ class ProcFtr(object):
         # x_res = np.concatenate((tmp2.f_angles, tmp2.x_lengths))
         return f_angles, f_lens
 
-    # @staticmethod
-    # def pose_normalization(x):
-    #     NUM_JOINTS_XY = 13*2
-    #     def retrain_only_body_joints(x_input):
-    #         x0 = x_input.copy()
-    #         x0 = x0[2:2+NUM_JOINTS_XY]
-    #         return x0
-
-    #     def normalize(x_input):
-    #         # Separate original data into x_list and y_list
-    #         lx = []
-    #         ly = []
-    #         N = len(x_input)
-    #         i = 0
-    #         while i<N:
-    #             lx.append(x_input[i])
-    #             ly.append(x_input[i+1])
-    #             i+=2
-    #         lx = np.array(lx)
-    #         ly = np.array(ly)
-
-    #         # Get rid of undetected data (=0)
-    #         non_zero_x = []
-    #         non_zero_y = []
-    #         for i in range(int(N/2)):
-    #             if lx[i] != 0:
-    #                 non_zero_x.append(lx[i])
-    #             if ly[i] != 0:
-    #                 non_zero_y.append(ly[i])
-
-    #         if len(non_zero_x)==0 or len(non_zero_y)==0:
-    #             return np.array([0]*NUM_JOINTS_XY)
-
-    #         # Normalization x/y data according to the bounding box
-    #         origin_x = np.min(non_zero_x)
-    #         origin_y = np.min(non_zero_y)
-    #         len_x = np.max(non_zero_x) - np.min(non_zero_x)
-    #         len_y = np.max(non_zero_y) - np.min(non_zero_y)
-            
-    #         len_x = 1 if len_x == 0 else len_x
-    #         len_y = 1 if len_y == 0 else len_y
-
-    #         x_new = []
-    #         for i in range(int(N/2)):
-    #             if (lx[i] + ly[i]) == 0:
-    #                 x_new.append(-1)
-    #                 x_new.append(-1)
-    #             else:
-    #                 x_new.append((lx[i] - origin_x) / len_x)
-    #                 x_new.append((ly[i] - origin_y) / len_y)
-    #         return np.array(x_new)
-
-    #     x_body_joints_xy = retrain_only_body_joints(x)
-    #     x_body_joints_xy = normalize(x_body_joints_xy)
-    #     return x_body_joints_xy
-
 # =================================================
 # =================================================
 # =================================================
@@ -293,9 +206,10 @@ class ProcFtr(object):
 # =================================================
 
 class FeatureGenerator(object):
-    def __init__(self):
+    def __init__(self, config_add_noise=False):
         self.reset()
         self.FEATURE_T_LEN = 5
+        self.config_add_noise = config_add_noise
         pass
 
     def reset(self):
@@ -311,7 +225,7 @@ class FeatureGenerator(object):
             self.lens_deque.popleft()
 
     def add_curr_skeleton(self, skeleton):
-        # return: flag, features
+        # return: bool_success, features
 
         x = ProcFtr.retrain_only_body_joints(skeleton) # return (skeleton.copy())[2:2+13*2]
 
@@ -322,6 +236,8 @@ class FeatureGenerator(object):
         else:
             # Fill zeros, compute angles/lens
             self.fill_zeros(x)
+            if self.config_add_noise:
+                self.add_noises(x)
             angles, lens = ProcFtr.joint_pos_2_angle_and_length(x)
 
             # Push to deque
@@ -350,8 +266,7 @@ class FeatureGenerator(object):
                 f_v_center = np.repeat(f_v_center, 10) # Add weights to this feature
                 f_v_joints = self.compute_v_all_joints(xnorm_list, step = 1) # len = (t=(5-1)/step)*12*2 = 96
 
-                # -- Output
-                # -- Group features together
+                # -- Output (Choose some features you want)
                 # print("f_poses: ",f_poses.shape)
                 # print("f_v_joints: ",f_v_joints.shape)
                 # print("f_v_center: ",f_v_center.shape)
@@ -391,6 +306,24 @@ class FeatureGenerator(object):
             miss_py = np.where(curr_py == NotANum)
             curr_px[miss_px] = curr_px0 + (prev_px[miss_px] - prev_px0)
             curr_py[miss_py] = curr_py0 + (prev_py[miss_px] - prev_py0)
+    
+    def add_noises(self, x):
+        N = len(x)//2 # joints number
+        def rand_noise(size, intense):
+            return (np.random.random(size)*2 - 1.0) * intense
+
+        if 1: # absolute noise
+            NOISE_INTENSE = 0.01 # 200x200 image, 1 pixel = 0.005
+            noises = rand_noise((2*N,), NOISE_INTENSE)
+        else: # relative noise
+            pass
+            # NOISE_INTENSE = 0.05
+            # width = max(x[::2]) - min(x[::2])
+            # width_noises = width * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
+            # height = max(x[1::2]) - min(x[1::2])
+            # height_noises = height * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
+        for i in range(2*N):
+            x[i] += noises[i] if x[i] != 0 else 0
 
     def deque_to_1darray(self, deque_data):
         features = []

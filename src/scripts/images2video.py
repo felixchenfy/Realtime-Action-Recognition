@@ -13,7 +13,7 @@ from mylib.funcs import get_filenames
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 
 if 1:
-    image_folder = CURR_PATH + '../skeleton_data/skeletons5apple_images/'
+    image_folder = CURR_PATH + '../skeleton_data/skeletons4apple_images/'
     video_name = CURR_PATH + '../mytest.avi'
     fnames = get_filenames(image_folder)
     N = len(fnames)

@@ -98,7 +98,8 @@ def drawActionResult(img_display, id, skeleton, str_action_type):
     
     # Draw bounding box
     # drawBoxToImage(img_display, [minx, miny], [maxx, maxy])
-    img_display = cv2.rectangle(img_display,(minx, miny),(maxx, maxy),(0,255,0), 4)
+    if 1 :
+        img_display = cv2.rectangle(img_display,(minx, miny),(maxx, maxy),(0,255,0), 4)
 
     # Draw text at left corner
 
@@ -109,6 +110,8 @@ def drawActionResult(img_display, id, skeleton, str_action_type):
 
     TEST_COL = int( minx + 5 * box_scale)
     TEST_ROW = int( miny - 10 * box_scale)
+    # TEST_ROW = int( miny)
+    # TEST_ROW = int( skeleton[3] * img_display.shape[0])
 
     img_display = cv2.putText(
-        img_display, "P"+str(id)+":"+str_action_type, (TEST_COL, TEST_ROW), font, fontsize, (0, 0, 255), linewidth, cv2.LINE_AA)
+        img_display, "P"+str(id%10)+": "+str_action_type, (TEST_COL, TEST_ROW), font, fontsize, (0, 0, 255), linewidth, cv2.LINE_AA)

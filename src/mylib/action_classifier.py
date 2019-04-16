@@ -31,7 +31,7 @@ CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 
 # Classifer for inference in run_detector.py  -----------------------------------------------
 # This class is for ONE PERSON only. Besides, the model should be using sklearn's Neural Network.
-class MyClassifier(object):
+class ClassifierOnlineTest(object):
     
     def __init__(self, model_path, action_types, human_id=0):
         
@@ -99,7 +99,7 @@ class MyClassifier(object):
 
         for i in range(-1, len(self.action_types)):
 
-            FONT_SIZE = 0.8
+            FONT_SIZE = 0.7
             TXT_X = 20
             TXT_Y = 150 + i*30
             COLOR_INTENSITY = 255
@@ -108,7 +108,7 @@ class MyClassifier(object):
                 s = "P{}:".format(self.human_id)
             else:
                 label = self.action_types[i]
-                s = "{:<7}: {:.2f}".format(label, self.scores[i])
+                s = "{:<5}: {:.2f}".format(label, self.scores[i])
                 COLOR_INTENSITY *= (0.0 + 1.0 * self.scores[i])**0.5
 
             cv2.putText(image_disp, text=s, org=(TXT_X, TXT_Y),
@@ -116,7 +116,7 @@ class MyClassifier(object):
                 color=(0, 0, int(COLOR_INTENSITY)), thickness=2)
 
 # Classifier for training in jupyter notebook-----------------------------------------------
-class MyModel(object):
+class ClassifierOfflineTrain(object):
     def __init__(self):
         self.init_all_models()
 
@@ -151,7 +151,8 @@ class MyModel(object):
             QuadraticDiscriminantAnalysis()]
     
     def train(self, X, Y):
-        n_components = min(50, X.shape[1])
+        NUM_FEATURES_FROM_PCA = 80
+        n_components = min(NUM_FEATURES_FROM_PCA, X.shape[1])
         self.pca = PCA(n_components=n_components, whiten=True)
         self.pca.fit(X)
         # print("Sum eig values:", np.sum(self.pca.singular_values_))

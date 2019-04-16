@@ -3,6 +3,7 @@ data/*
 data_test/*
 papers/*
 others/*
+results/*
 
 src/.ipynb_checkpoints/*
 src/githubs/*
