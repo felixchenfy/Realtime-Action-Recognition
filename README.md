@@ -62,21 +62,32 @@ cd src/githubs
 git clone https://github.com/ildoonet/tf-pose-estimation  
 ```
 
-Follow its tutorial [here](https://github.com/ildoonet/tf-pose-estimation#install-1) to download the two models trained by the author, named as "cmu" and "mobilenet_thin" respectively. 
+Follow its tutorial [here](https://github.com/ildoonet/tf-pose-estimation#install-1) to download the "cmu" model. As for the "mobilenet_thin", it's already inside the folder.  
+
+'''
+$ cd tf-pose-estimation/models/graph/cmu
+$ bash download.sh
+'''
 
 Then install dependencies. I listed my installation steps as bellow:
 ```
 conda create -n tf tensorflow-gpu
 conda activate tf
+
 cd $MyRoot
 pip install -r requirements1.txt
-cd src/githubs/tf-pose-estimation/tf_pose/pafprocess
+conda install jupyter tqdm
+sudo apt install swig
+
+pip install "git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI"
+
+cd $MyRoot/src/githubs/tf-pose-estimation/tf_pose/pafprocess
 swig -python -c++ pafprocess.i && python3 setup.py build_ext --inplace
 ```
 
 Make sure you can successfully run its demo examples:
 ```
-cd $MyRoot/src/tf-pose-estimation
+cd $MyRoot/src/githubs/tf-pose-estimation
 python run.py --model=mobilenet_thin --resize=432x368 --image=./images/p1.jpg
 ```
 
