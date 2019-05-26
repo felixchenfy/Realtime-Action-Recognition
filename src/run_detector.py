@@ -14,7 +14,8 @@ from mylib.action_classifier import ClassifierOnlineTest
 from mylib.action_classifier import * # Import sklearn related libraries
 
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
-DRAW_FPS = False
+DRAW_FPS = True
+
 
 
 # INPUTS ==============================================================
@@ -39,13 +40,12 @@ if FROM_WEBCAM:
     folder_suffix = "3"
     DO_INFER_ACTIONS =  True
     SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = False
-    if 0: 
+    if 1: 
         image_size = "432x368" # 10 fps
         OpenPose_MODEL = ["mobilenet_thin", "cmu"][0]
     else:
         image_size = "240x208" # 10 fps
         OpenPose_MODEL = ["mobilenet_thin", "cmu"][1]
-
 
 elif FROM_FOLDER:
     folder_suffix = "4"
@@ -105,6 +105,12 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
+# ---- For tf 1.13.1 The following setting is needed
+import tensorflow as tf
+from tensorflow import keras
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
 
 # Openpose Human pose detection ==============================================================
 
@@ -137,10 +143,15 @@ class SkeletonDetector(object):
 
         w, h = model_wh(image_size)
         if w == 0 or h == 0:
-            e = TfPoseEstimator(get_graph_path(self.model),
-                                target_size=(432, 368))
+            e = TfPoseEstimator(
+                    get_graph_path(self.model),
+                    target_size=(432, 368),
+                    tf_config=config)
         else:
-            e = TfPoseEstimator(get_graph_path(self.model), target_size=(w, h))
+            e = TfPoseEstimator(
+                get_graph_path(self.model), 
+                target_size=(w, h),
+                tf_config=config)
 
         # self.args = args
         self.w, self.h = w, h
