@@ -32,11 +32,19 @@ if __name__=="__main__":
     all_skeletons = []
     all_skeletons_good_only = []
     for i in range(1, NUM_SKELETONS+1):
-        if i%100==0:
+        if i==1 or i%100==0:
             print("{}/{}".format(i, NUM_SKELETONS))
         skeletons = load_skeletons(CURR_PATH + read_from + int2str(i, 5) + ".txt")
         idx_person = 0 # Only one person in each image
-        skeleton = skeletons[idx_person]
+
+        # Check if skeleton is valid
+        if len(skeletons):
+            skeleton = skeletons[idx_person]
+            data_size = len(skeleton)
+            if i==1:
+                print("data size = {}".format(data_size))
+        else:
+            skeleton = [0] * data_size
 
         # -- Push to result list
         all_skeletons.append(skeleton) 

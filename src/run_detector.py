@@ -22,8 +22,8 @@ DRAW_FPS = True
 
 def parse_input_method():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", required=False, default='webcam',
-        help="Choose from (1) webcam, (2) folder, or (3) txtscript")
+    parser.add_argument("--source", required=False, default='webcam', 
+                        choices=["webcam", "folder", "txtscript"])
     return parser.parse_args().source
  
 arg_input = parse_input_method()
@@ -89,7 +89,7 @@ if SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE:
     if not os.path.exists(SAVE_DETECTED_SKELETON_IMAGES_TO):
         os.makedirs(SAVE_DETECTED_SKELETON_IMAGES_TO)
 
-# Openpose include files==============================================================
+# Openpose include files and configs ==============================================================
 
 sys.path.append(CURR_PATH + "githubs/tf-pose-estimation")
 from tf_pose.networks import get_graph_path, model_wh
@@ -105,12 +105,15 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-# ---- For tf 1.13.1 The following setting is needed
+# ---- For tf 1.13.1, The following setting is needed
 import tensorflow as tf
 from tensorflow import keras
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 
+# If GPU memory is small, modify the MAX_FRACTION_OF_GPU_TO_USE
+MAX_FRACTION_OF_GPU_TO_USE = 0.5
+config.gpu_options.per_process_gpu_memory_fraction=MAX_FRACTION_OF_GPU_TO_USE
 
 # Openpose Human pose detection ==============================================================
 
@@ -223,8 +226,11 @@ def remove_skeletons_with_few_joints(skeletons):
         num_valid_joints = len([x for x in px if x!=0])
         num_leg_joints = len([x for x in px[-6:] if x!=0])
         total_size = max(py) - min(py)
-        if num_valid_joints >= 5 and total_size >= 0.2 and num_leg_joints >= 2: 
-            good_skeletons.append(skeleton)
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # IF JOINTS ARE MISSING, TRY CHANGING THESE VALUES:
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if num_valid_joints >= 5 and total_size >= 0.1 and num_leg_joints >= 2: 
+            good_skeletons.append(skeleton) # add this skeleton only when all requirements are satisfied
     return good_skeletons
 
 class MultiPersonClassifier(object):
@@ -280,7 +286,7 @@ if __name__ == "__main__":
 
     elif FROM_TXTSCRIPT:
         images_loader = myio.DataLoader_txtscript(SRC_IMAGE_FOLDER, VALID_IMAGES_TXT)
-        images_loader.save_images_info(path =  SAVE_IMAGES_INFO_TO)
+        images_loader.save_images_info(path=SAVE_IMAGES_INFO_TO)
 
     # -- Initialize human tracker and action classifier
     if DO_INFER_ACTIONS:
@@ -292,7 +298,7 @@ if __name__ == "__main__":
     while ith_img <= images_loader.num_images:
         img, img_action_type, img_info = images_loader.load_next_image()
         image_disp = img.copy()
-
+        
         print("\n\n========================================")
         print("\nProcessing {}/{}th image\n".format(ith_img, images_loader.num_images))
 
@@ -315,7 +321,6 @@ if __name__ == "__main__":
                 dict_id2skeleton = {min_id : dict_id2skeleton[min_id]}
                 dict_id2label = {min_id : img_action_type}
                 print("Ground_truth label is :", dict_id2label[min_id])
-
 
         # -- Draw
         my_detector.draw(image_disp, humans) # Draw all skeletons
