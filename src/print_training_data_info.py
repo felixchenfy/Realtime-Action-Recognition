@@ -2,7 +2,7 @@
 
 import numpy as np
 import sys, os, time
-from mylib.io import *
+from utils.lib_io import *
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 
 

@@ -1,4 +1,11 @@
 
+if True: # Include project path
+    import sys
+    import os
+    ROOT = os.path.dirname(os.path.abspath(__file__))+"/../"
+    CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
+    sys.path.append(ROOT)
+
 import numpy as np
 import cv2
 import sys, os, time, argparse, logging
@@ -6,33 +13,34 @@ import simplejson
 import argparse
 import math
 
-import mylib.io as myio
-from mylib.displays import drawActionResult
-import mylib.funcs as myfunc
-import mylib.feature_proc as myproc 
-from mylib.action_classifier import ClassifierOnlineTest
-from mylib.action_classifier import * # Import sklearn related libraries
+import utils.lib_io as lib_io
+import utils.lib_commons as lib_commons
+from utils.lib_plot import draw_action_result
+from utils.lib_tracker import Tracker
+from utils.action_classifier import ClassifierOnlineTest
+from utils.action_classifier import * # Import sklearn related libraries
 
-CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 DRAW_FPS = True
 
 
 
-# INPUTS ==============================================================
+# ==============================================================
+# ======== Inputs ======== 
 
-def parse_input_method():
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=False, default='webcam', 
                         choices=["webcam", "folder", "txtscript"])
-    return parser.parse_args().source
+    args = parser.parse_args()
+    return args.source
  
-arg_input = parse_input_method()
-FROM_WEBCAM = arg_input == "webcam" # from web camera
-FROM_TXTSCRIPT = arg_input == "txtscript" # from a txt script (for training)
-FROM_FOLDER = arg_input == "folder" # read images from a folder
+args = parse_args()
+FROM_WEBCAM = args.source == "webcam" # from web camera
+FROM_FOLDER = args.source == "folder" # read images from a folder
+FROM_TXTSCRIPT = args.source == "txtscript" # from a txt script (for training)
 
-# PATHS and SETTINGS =================================
-
+# ==============================================================
+# ======== PATHS and SETTINGS ======== 
 # Choose image_size from: ["640x480", "432x368", "304x240", "240x208", "208x160"]
 # The higher, the better. But slower.
 
@@ -52,7 +60,9 @@ elif FROM_FOLDER:
     DO_INFER_ACTIONS =  True
     SAVE_RESULTANT_SKELETON_TO_TXT_AND_IMAGE = True
     def set_source_images_from_folder():
-        return CURR_PATH + "../data_test/apple/", 1
+        # return CURR_PATH + "../data_test/apple/", 1
+        return "/home/feiyu/Documents/Projects/2018-winter/EECS433_PR/data/source_images3/jump_03-13-11-27-50-720", 0
+    # TODO: Added a raise Value error here
     SRC_IMAGE_FOLDER, SKIP_NUM_IMAGES = set_source_images_from_folder()
     folder_suffix += SRC_IMAGE_FOLDER.split('/')[-2] # plus folder name
     # image_size = "304x240"
@@ -146,15 +156,12 @@ class SkeletonDetector(object):
 
         w, h = model_wh(image_size)
         if w == 0 or h == 0:
-            e = TfPoseEstimator(
-                    get_graph_path(self.model),
-                    target_size=(432, 368),
-                    tf_config=config)
-        else:
-            e = TfPoseEstimator(
-                get_graph_path(self.model), 
-                target_size=(w, h),
-                tf_config=config)
+            w, h =432, 368
+    
+        e = TfPoseEstimator(
+            get_graph_path(self.model), 
+            target_size=(w, h),
+            tf_config=config)
 
         # self.args = args
         self.w, self.h = w, h
@@ -192,7 +199,7 @@ class SkeletonDetector(object):
                         (0, 0, 255), 2)
         self.fps_time = time.time()
 
-    def humans_to_skelsList(self, humans, scale_y = None): # get (x, y * scale_y)
+    def humans_to_skels_list(self, humans, scale_y = None): # get (x, y * scale_y)
         # type: humans: returned from self.detect()
         # rtype: list[list[]]
         if scale_y is None:
@@ -279,19 +286,19 @@ if __name__ == "__main__":
 
     # -- Load images
     if FROM_WEBCAM:
-        images_loader = myio.DataLoader_usbcam()
+        images_loader = lib_io.DataLoader_WebCam()
 
     elif FROM_FOLDER:
-        images_loader = myio.DataLoader_folder(SRC_IMAGE_FOLDER, SKIP_NUM_IMAGES)
+        images_loader = lib_io.DataLoader_folder(SRC_IMAGE_FOLDER, SKIP_NUM_IMAGES)
 
     elif FROM_TXTSCRIPT:
-        images_loader = myio.DataLoader_txtscript(SRC_IMAGE_FOLDER, VALID_IMAGES_TXT)
+        images_loader = lib_io.DataLoader_txtscript(SRC_IMAGE_FOLDER, VALID_IMAGES_TXT)
         images_loader.save_images_info(path=SAVE_IMAGES_INFO_TO)
 
     # -- Initialize human tracker and action classifier
     if DO_INFER_ACTIONS:
         multipeople_classifier = MultiPersonClassifier(LOAD_MODEL_PATH, action_labels)
-    multiperson_tracker = myfunc.Tracker()
+    multiperson_tracker = Tracker()
 
     # -- Loop through all images
     ith_img = 1
@@ -304,7 +311,7 @@ if __name__ == "__main__":
 
         # -- Detect all people's skeletons
         humans = my_detector.detect(img)
-        skeletons, scale_y = my_detector.humans_to_skelsList(humans)
+        skeletons, scale_y = my_detector.humans_to_skels_list(humans)
         skeletons = remove_skeletons_with_few_joints(skeletons)
 
         # -- Track people
@@ -332,7 +339,7 @@ if __name__ == "__main__":
                 skeleton = dict_id2skeleton[id]
                 skeleton[1::2] = skeleton[1::2] / scale_y # scale the y data back to original
                 # print("Drawing skeleton: ", dict_id2skeleton[id], "with label:", label, ".")
-                drawActionResult(image_disp, id, skeleton, label)
+                draw_action_result(image_disp, id, skeleton, label)
 
 
         # Add blank to the left for displaying prediction scores of each class
@@ -350,14 +357,14 @@ if __name__ == "__main__":
             skel_to_save = [img_info + dict_id2skeleton[id].tolist() for id in ids]
 
 
-            myio.save_skeletons(SAVE_DETECTED_SKELETON_TO 
-                + myfunc.int2str(ith_img, 5) + ".txt", skel_to_save)
+            lib_io.save_skeletons(SAVE_DETECTED_SKELETON_TO 
+                + lib_commons.int2str(ith_img, 5) + ".txt", skel_to_save)
             cv2.imwrite(SAVE_DETECTED_SKELETON_IMAGES_TO 
-                + myfunc.int2str(ith_img, 5) + ".png", image_disp)
+                + lib_commons.int2str(ith_img, 5) + ".png", image_disp)
 
             if FROM_TXTSCRIPT or FROM_WEBCAM: # Save source image
                 cv2.imwrite(SAVE_DETECTED_SKELETON_IMAGES_TO
-                    + myfunc.int2str(ith_img, 5) + "_src.png", img)
+                    + lib_commons.int2str(ith_img, 5) + "_src.png", img)
 
         # -- Display
         if 1:

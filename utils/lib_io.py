@@ -4,21 +4,16 @@ import time
 import glob
 LENGTH_OF_IMAGE_INFO = 5 # see mylib/py: [cnt_action, cnt_clip, cnt_image, img_action_type, filepath]
     
-class DataLoader_usbcam(object):
+class DataLoader_WebCam(object):
     def __init__(self, max_framerate = 10):
         self.cam = cv2.VideoCapture(0)
         self.num_images = 9999999
         self.frame_period = 1.0/max_framerate*0.999
         self.prev_image_time = time.time() - self.frame_period
 
-    def wait_for_framerate(self):
-        t_curr = time.time()
-        t_wait = self.frame_period - (t_curr - self.prev_image_time)
-        if t_wait > 0:
-            time.sleep(t_wait)
 
     def load_next_image(self):
-        self.wait_for_framerate()
+        self._sync_to_framerate()
         
         ret_val, img = self.cam.read()
         self.prev_image_time = time.time()
@@ -27,6 +22,12 @@ class DataLoader_usbcam(object):
         img_action_type = "unknown"
         return img, img_action_type, ["none"]*LENGTH_OF_IMAGE_INFO
 
+    def _sync_to_framerate(self):
+        t_curr = time.time()
+        t_wait = self.frame_period - (t_curr - self.prev_image_time)
+        if t_wait > 0:
+            time.sleep(t_wait)
+            
 class DataLoader_folder(object):
     def __init__(self, folder, num_skip = 0):
         self.cnt_image = 0
@@ -107,7 +108,7 @@ def int2str(num, blank):
     return ("{:0"+str(blank)+"d}").format(num)
 
 def int2name(num):
-    return int2str(num, 5)+".png"
+    return int2str(num, 5)+".png" # TODO: Add compatibility for .jpg
 
 def collect_images_info_from_source_images(path, valid_images_txt):
     images_info = list()

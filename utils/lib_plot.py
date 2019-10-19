@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import cv2
 import math
 
-# from sklearn import svm, datasets
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
@@ -72,7 +71,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
 # Drawings ==============================================================
 
-def drawActionResult(img_display, id, skeleton, str_action_type):
+def draw_action_result(img_display, id, skeleton, str_action_type):
     font = cv2.FONT_HERSHEY_SIMPLEX 
 
     minx = 999
@@ -94,16 +93,12 @@ def drawActionResult(img_display, id, skeleton, str_action_type):
     miny = int(miny * img_display.shape[0])
     maxx = int(maxx * img_display.shape[1])
     maxy = int(maxy * img_display.shape[0])
-    #print(minx, miny, maxx, maxy)
     
     # Draw bounding box
     # drawBoxToImage(img_display, [minx, miny], [maxx, maxy])
-    if 1 :
-        img_display = cv2.rectangle(img_display,(minx, miny),(maxx, maxy),(0,255,0), 4)
+    img_display = cv2.rectangle(img_display,(minx, miny),(maxx, maxy),(0,255,0), 4)
 
     # Draw text at left corner
-
-
     box_scale = max(0.5, min(2.0, (1.0*(maxx - minx)/img_display.shape[1] / (0.3))**(0.5) ))
     fontsize = 1.4 * box_scale
     linewidth = int(math.ceil(3 * box_scale))

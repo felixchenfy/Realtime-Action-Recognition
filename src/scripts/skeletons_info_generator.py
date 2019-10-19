@@ -12,8 +12,8 @@ import sys, os
 import csv
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 sys.path.append(CURR_PATH+"../")
-from mylib.io import load_skeletons
-from mylib.funcs import get_filenames
+from utils.lib_io import load_skeletons
+from utils.funcs import get_filenames
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
 
 

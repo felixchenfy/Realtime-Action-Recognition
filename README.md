@@ -7,15 +7,15 @@ This is my final project for EECS-433 Pattern Recognition. It's based on this [g
 **Highlights**: 9 actions; multiple people (<=5); Real-time and multi-frame based recognition algorithm.
 
 **Contents:**
-- [Multi-person Real-time Action Recognition Based-on Human Skeleton](#multi-person-real-time-action-recognition-based-on-human-skeleton)
-- [1. Overview](#1-overview)
-  - [1.1 Demo](#11-demo)
-  - [1.2 Performance](#12-performance)
-  - [1.3 Training Data](#13-training-data)
-  - [1.4 Algorithm](#14-algorithm)
-- [2. Install Dependency (OpenPose)](#2-install-dependency-openpose)
-- [3. How to run: Testing](#3-how-to-run-testing)
-- [4. How to run: Training](#4-how-to-run-training)
+- [Multi-person Real-time Action Recognition Based-on Human Skeleton](#Multi-person-Real-time-Action-Recognition-Based-on-Human-Skeleton)
+- [1. Overview](#1-Overview)
+  - [1.1 Demo](#11-Demo)
+  - [1.2 Performance](#12-Performance)
+  - [1.3 Training Data](#13-Training-Data)
+  - [1.4 Algorithm](#14-Algorithm)
+- [2. Install Dependency (OpenPose)](#2-Install-Dependency-OpenPose)
+- [3. How to run: Testing](#3-How-to-run-Testing)
+- [4. How to run: Training](#4-How-to-run-Training)
 
 
 # 1. Overview
@@ -41,7 +41,7 @@ The total video lengths are about 20 mins, containing more than 10000 video fram
 *  Get the joints' positions by [OpenPose](https://github.com/ildoonet/tf-pose-estimation).  
 *  Track each person. The distance metric is based on joints positions. 
 See *class Tracker* in [funcs.py](src/mylib/funcs.py)
-*  Fill in a person's missing joints by these joints' relative pos in previous frame.  See *class FeatureGenerator* in [feature_proc.py](src/mylib/feature_proc.py). So does the following.
+*  Fill in a person's missing joints by these joints' relative pos in previous frame.  See *class FeatureGenerator* in [lib_feature_proc.py](src/mylib/lib_feature_proc.py). So does the following.
 *  Add noise to the (x, y) joint positions to augment data.
 *  Use a window size of 0.5s (5 frames) to extract features.    
 *  Extract features of (1) body velocity and (2) normalized joint positions and (3) joint velocities.
@@ -64,10 +64,10 @@ git clone https://github.com/ildoonet/tf-pose-estimation
 
 Follow its tutorial [here](https://github.com/ildoonet/tf-pose-estimation#install-1) to download the "cmu" model. As for the "mobilenet_thin", it's already inside the folder.  
 
-'''
-$ cd tf-pose-estimation/models/graph/cmu
-$ bash download.sh
-'''
+```
+$ cd tf-pose-estimation/models/graph/cmu  
+$ bash download.sh  
+```
 
 Then install dependencies. I listed my installation steps as bellow:
 ```
