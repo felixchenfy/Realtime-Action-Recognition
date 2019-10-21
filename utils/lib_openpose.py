@@ -24,7 +24,7 @@ from tf_pose import common
 
 
 # -- Settings
-MAX_FRACTION_OF_GPU_TO_USE = 0.5
+MAX_FRACTION_OF_GPU_TO_USE = 0.4
 IS_DRAW_FPS = True
 
 # -- Helper functions
@@ -161,7 +161,7 @@ def test_openpose_on_webcamera():
     img_displayer = ImageDisplayer()
     
     # -- Initialize openpose detector    
-    detector = SkeletonDetector("mobilenet_thin", "432x368")
+    skeleton_detector = SkeletonDetector("mobilenet_thin", "432x368")
 
     # -- Read image and detect
     import itertools
@@ -172,11 +172,11 @@ def test_openpose_on_webcamera():
         print(f"Read {i}th image...")
 
         # Detect
-        humans = detector.detect(img)
+        humans = skeleton_detector.detect(img)
         
         # Draw
         img_disp = img.copy()
-        detector.draw(img_disp, humans)
+        skeleton_detector.draw(img_disp, humans)
         img_displayer.display(img_disp)
         
     print("Program ends")

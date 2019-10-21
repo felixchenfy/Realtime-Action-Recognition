@@ -7,6 +7,7 @@ class ReadFromFolder
 class ReadFromVideo
 class ReadFromWebcam
 class ImageDisplayer
+
 def test_ReadFromWebcam
 '''
 
@@ -20,7 +21,12 @@ import threading
 import queue
 import multiprocessing
 
+
 class ReadFromFolder(object):
+    ''' A image reader class for reading images from a folder.
+    By default, all files under the folder are considered as image file.
+    '''
+
     def __init__(self, folder_path):
         self.fnames = sorted(glob.glob(folder_path + "/*"))
         self.cnt_imgs = 0
@@ -109,20 +115,21 @@ class ReadFromVideo(object):
 
 
 class ReadFromWebcam(object):
-    def __init__(self, max_framerate=30.0):
-        ''' Argument:
-            max_framerate {int}: the frame rate will be restricted to be smaller than this.
+    def __init__(self, max_framerate=30.0, webcam_idx=0):
+        ''' Read images from web camera.
+        Argument:
+            max_framerate {float}: the real framerate will be reduced below this value.
+            webcam_idx {int}: index of the web camera on your laptop. It should be 0 by default.
         '''
         # Settings
         self._max_framerate = max_framerate
         queue_size = 3
-        
+
         # Initialize video reader
-        video_path = 0
-        if not os.path.exists(video_path):
-            raise IOError("Video not exist: " + video_path)
+        if not os.path.exists(webcam_idx):
+            raise IOError("Video not exist: " + webcam_idx)
         self._is_stoped = False
-        self._video = cv2.VideoCapture(video_path)
+        self._video = cv2.VideoCapture(webcam_idx)
 
         # Use a thread to keep on reading images from web camera
         self._imgs_queue = queue.Queue(maxsize=queue_size)
@@ -165,6 +172,8 @@ class ReadFromWebcam(object):
 
 
 class ImageDisplayer(object):
+    ''' A simple wrapper of using cv2.imshow to display image '''
+
     def __init__(self):
         self._window_name = "images2video.py"
         cv2.namedWindow(self._window_name)
@@ -178,6 +187,7 @@ class ImageDisplayer(object):
 
 
 def test_ReadFromWebcam():
+    ''' Test the class ReadFromWebcam '''
     webcam_reader = ReadFromWebcam(max_framerate=10)
     img_displayer = ImageDisplayer()
     import itertools

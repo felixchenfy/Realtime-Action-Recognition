@@ -54,6 +54,8 @@ For more details about *how the features are extracted*, please see my [report](
 
 # 2. Install Dependency (OpenPose)
 
+Python >= 3.6
+
 I used the OpenPose from this Github: [tf-pose-estimation](https://github.com/ildoonet/tf-pose-estimation). First download it:
 
 ```

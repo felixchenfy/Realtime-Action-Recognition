@@ -219,11 +219,11 @@ class SkeletonDetector(object):
 
 # ==============================================================
 
-def add_white_region_to_left_of_image(image_disp):
-    r, c, d = image_disp.shape
+def add_white_region_to_left_of_image(img_disp):
+    r, c, d = img_disp.shape
     blank = 255 + np.zeros((r, int(c/4), d), np.uint8)
-    image_disp = np.hstack((blank, image_disp))
-    return image_disp
+    img_disp = np.hstack((blank, img_disp))
+    return img_disp
 
 def remove_skeletons_with_few_joints(skeletons):
     good_skeletons = []
@@ -293,7 +293,7 @@ if __name__ == "__main__":
 
     elif FROM_TXTSCRIPT:
         images_loader = lib_io.DataLoader_txtscript(SRC_IMAGE_FOLDER, VALID_IMAGES_TXT)
-        images_loader.save_images_info(path=SAVE_IMAGES_INFO_TO)
+        images_loader.save_images_info(filepath=SAVE_IMAGES_INFO_TO)
 
     # -- Initialize human tracker and action classifier
     if DO_INFER_ACTIONS:
@@ -303,8 +303,8 @@ if __name__ == "__main__":
     # -- Loop through all images
     ith_img = 1
     while ith_img <= images_loader.num_images:
-        img, img_action_type, img_info = images_loader.load_next_image()
-        image_disp = img.copy()
+        img, img_action_type, img_info = images_loader.read_image()
+        img_disp = img.copy()
         
         print("\n\n========================================")
         print("\nProcessing {}/{}th image\n".format(ith_img, images_loader.num_images))
@@ -330,7 +330,7 @@ if __name__ == "__main__":
                 print("Ground_truth label is :", dict_id2label[min_id])
 
         # -- Draw
-        my_detector.draw(image_disp, humans) # Draw all skeletons
+        my_detector.draw(img_disp, humans) # Draw all skeletons
         
         if len(dict_id2skeleton): 
             
@@ -339,15 +339,15 @@ if __name__ == "__main__":
                 skeleton = dict_id2skeleton[id]
                 skeleton[1::2] = skeleton[1::2] / scale_y # scale the y data back to original
                 # print("Drawing skeleton: ", dict_id2skeleton[id], "with label:", label, ".")
-                draw_action_result(image_disp, id, skeleton, label)
+                draw_action_result(img_disp, id, skeleton, label)
 
 
         # Add blank to the left for displaying prediction scores of each class
-        image_disp = add_white_region_to_left_of_image(image_disp)
+        img_disp = add_white_region_to_left_of_image(img_disp)
 
         # Draw predicting score for only 1 person (not using for)
         if DO_INFER_ACTIONS and len(dict_id2skeleton):
-            multipeople_classifier.get(id='min').draw_scores_onto_image(image_disp)
+            multipeople_classifier.get(id='min').draw_scores_onto_image(img_disp)
 
 
         # -- Write skeleton.txt and image.png
@@ -360,7 +360,7 @@ if __name__ == "__main__":
             lib_io.save_skeletons(SAVE_DETECTED_SKELETON_TO 
                 + lib_commons.int2str(ith_img, 5) + ".txt", skel_to_save)
             cv2.imwrite(SAVE_DETECTED_SKELETON_IMAGES_TO 
-                + lib_commons.int2str(ith_img, 5) + ".png", image_disp)
+                + lib_commons.int2str(ith_img, 5) + ".png", img_disp)
 
             if FROM_TXTSCRIPT or FROM_WEBCAM: # Save source image
                 cv2.imwrite(SAVE_DETECTED_SKELETON_IMAGES_TO
@@ -371,8 +371,8 @@ if __name__ == "__main__":
             if ith_img == 1:
                 window_name = "action_recognition"
                 cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-            # image_disp = cv2.resize(image_disp, (0,0), fx=1.5, fy=1.5) # resize to make picture bigger
-            cv2.imshow(window_name, image_disp)
+            # img_disp = cv2.resize(img_disp, (0,0), fx=1.5, fy=1.5) # resize to make picture bigger
+            cv2.imshow(window_name, img_disp)
             q = cv2.waitKey(1)
             if q != -1 and chr(q) == 'q':
                 break
