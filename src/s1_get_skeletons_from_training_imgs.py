@@ -38,11 +38,11 @@ if True:  # Include project path
 SRC_IMAGES_FOLDER = ROOT + "data/source_images3/"
 SRC_IMAGES_DESCRIPTION_TXT = ROOT + "data/source_images3/valid_images.txt"
 # Store image type, filename, etc.
-DST_IMAGES_INFO_FILE = ROOT + "data/proc_skeletons/images_info.txt"
+DST_IMAGES_INFO_FILE = ROOT + "data_proc/raw_skeletons/images_info.txt"
 # Each txt stores the skeleton of one image.
-DST_DETECTED_SKELETONS_FOLDER = ROOT + "data/proc_skeletons/skeleton_res/"
+DST_DETECTED_SKELETONS_FOLDER = ROOT + "data_proc/raw_skeletons/skeleton_res/"
 # Each image is drawn with the detected skeleton.
-DST_VIZ_IMGS_FOLDER = ROOT + "data/proc_skeletons/image_viz/"
+DST_VIZ_IMGS_FOLDER = ROOT + "data_proc/raw_skeletons/image_viz/"
 
 # Openpose settings
 OPENPOSE_MODEL = ["mobilenet_thin", "cmu"][1]

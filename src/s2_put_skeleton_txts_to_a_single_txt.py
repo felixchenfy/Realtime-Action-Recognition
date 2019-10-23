@@ -19,8 +19,8 @@ if True:  # Include project path
     from utils.lib_commons import get_filenames
 
 # -- Settings
-SRC_DETECTED_SKELETONS_FOLDER = ROOT + "data/proc_skeletons/skeleton_res/"
-DST_SINGLE_SKELETONS_TXT_FILE = ROOT + "data/proc_skeletons/skeletons_info.txt"
+SRC_DETECTED_SKELETONS_FOLDER = ROOT + "data_proc/raw_skeletons/skeleton_res/"
+DST_SINGLE_SKELETONS_TXT_FILE = ROOT + "data_proc/raw_skeletons/skeletons_info.txt"
 IDX_PERSON = 0  # Only use the skeleton of the 0th person in each image
 
 # -- Helper function
