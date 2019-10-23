@@ -156,7 +156,7 @@ class SkeletonDetector(object):
 def test_openpose_on_webcamera():
     
     # -- Initialize web camera reader
-    from utils.lib_images_loader import ReadFromWebcam, ImageDisplayer
+    from utils.lib_images_io import ReadFromWebcam, ImageDisplayer
     webcam_reader = ReadFromWebcam(max_framerate=10)
     img_displayer = ImageDisplayer()
     

@@ -19,7 +19,7 @@ def train_test_split(X, Y):
 
 
 # Preprocess features
-def extract_time_serials_data(X, Y, video_indices, is_adding_noise=False):
+def extract_time_serials_features(X, Y, video_indices, is_adding_noise=False):
     X_new = []
     Y_new = []
 
