@@ -38,24 +38,23 @@ class ReadFromFolder(object):
     '''
 
     def __init__(self, folder_path):
-        self.fnames = sorted(glob.glob(folder_path + "/*"))
+        self.filenames = sorted(glob.glob(folder_path + "/*"))
         self.cnt_imgs = 0
         self.cur_filename = ""
 
     def read_image(self):
-        if self.cnt_imgs < len(self.fnames):
-            self.cur_filename = self.fnames[self.cnt_imgs]
-            img = cv2.imread(self.cur_filename, cv2.IMREAD_UNCHANGED)
-            self.cnt_imgs += 1
-            return img
-        else:
+        if self.cnt_imgs >= len(self.filenames):
             return None
+        self.cur_filename = self.filenames[self.cnt_imgs]
+        img = cv2.imread(self.cur_filename, cv2.IMREAD_UNCHANGED)
+        self.cnt_imgs += 1
+        return img
 
     def __len__(self):
-        return len(self.fnames)
+        return len(self.filenames)
 
-    def get_cur_filename(self):
-        return self.cur_filename
+    def has_image(self):
+        return self.cnt_imgs < len(self.filenames)
 
     def stop(self):
         None
@@ -136,10 +135,8 @@ class ReadFromWebcam(object):
         queue_size = 3
 
         # Initialize video reader
-        if not os.path.exists(webcam_idx):
-            raise IOError("Video not exist: " + webcam_idx)
-        self._is_stoped = False
         self._video = cv2.VideoCapture(webcam_idx)
+        self._is_stoped = False
 
         # Use a thread to keep on reading images from web camera
         self._imgs_queue = queue.Queue(maxsize=queue_size)

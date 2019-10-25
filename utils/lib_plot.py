@@ -113,3 +113,10 @@ def draw_action_result(img_display, id, skeleton, str_action_label):
 
     img_display = cv2.putText(
         img_display, "P"+str(id % 10)+": "+str_action_label, (TEST_COL, TEST_ROW), font, fontsize, (0, 0, 255), linewidth, cv2.LINE_AA)
+
+
+def add_white_region_to_left_of_image(img_disp):
+    r, c, d = img_disp.shape
+    blank = 255 + np.zeros((r, int(c/4), d), np.uint8)
+    img_disp = np.hstack((blank, img_disp))
+    return img_disp

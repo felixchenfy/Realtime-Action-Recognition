@@ -6,8 +6,11 @@
 #     The image whose label is not in `classes` will be filtered out. 
 classes: ['stand', 'walk', 'run', 'jump', 'sit', 'squat', 'kick', 'punch', 'wave']
 
-image_filename_format: "{:05d}.png"
+image_filename_format: "{:05d}.jpg"
 skeleton_filename_format: "{:05d}.txt"
+
+features:
+  window_size: 5 # Number of adjacent frames for extracting features. 
 
 s1_get_skeletons_from_training_imgs.py:
   openpose:
@@ -41,7 +44,7 @@ s4_train.py:
     processed_features: *features_x
     processed_features_labels: *features_y
   output:
-    model_path: model/trained_classifier_tmp.pickle
+    model_path: model/trained_classifier.pickle
 
 s5_test.py:
   # Input:
@@ -55,13 +58,19 @@ s5_test.py:
   #   In short, the input video or folder will have the same output folder name;
   #             the input webcam will have a time stamp as the folder name.
   settings:
-    src_webcam_max_framerate: 10.0
-    src_video_sample_interval: 1
+    
+    source:
+      webcam_max_framerate: 10.0
+      video_sample_interval: 1
 
-    # openpose_model: mobilenet_thin
-    # openpose_img_size: 656x368
-    openpose_model: cmu
-    openpose_img_size: 432x368
+    openpose:
+      # model: mobilenet_thin
+      # img_size: 656x368
+      model: cmu
+      img_size: 432x368
+
+    display:
+      desired_rows: 480 # Resize the image and then display
   
   output:
     video_name: "video.avi" # save the resultant video to file

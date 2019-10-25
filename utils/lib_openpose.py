@@ -100,9 +100,9 @@ class SkeletonDetector(object):
         '''
         self._cnt_image += 1
         if self._cnt_image == 1:
-            self.image_h = image.shape[0]
-            self.image_w = image.shape[1]
-            self.scale_y = 1.0 * self.image_h / self.image_w
+            self._image_h = image.shape[0]
+            self._image_w = image.shape[1]
+            self._scale_h = 1.0 * self._image_h / self._image_w
         t = time.time()
 
         # Do inference
@@ -130,17 +130,21 @@ class SkeletonDetector(object):
                         (0, 0, 255), 2)
         self._prev_t = time.time()
 
-    def humans_to_skels_list(self, humans, scale_y = None): 
-        ''' Get skeleton data of (x, y * scale_y) from humans.
+    def humans_to_skels_list(self, humans, scale_h = None): 
+        ''' Get skeleton data of (x, y * scale_h) from humans.
         Arguments:
             humans {a class returned by self.detect}
-            scale_y {float}: scale each skeleton's y coordinate value 
+            scale_h {float}: scale each skeleton's y coordinate (height) value.
+                Default: (image_height / image_widht).
         Returns:
             skeletons {list of list}: a list of skeleton.
                 Each skeleton is also a list with a length of 36 (18 joints * 2 coord values).
+            scale_h {float}: The resultant height(y coordinate) range.
+                The x coordinate is between [0, 1].
+                The y coordinate is between [0, scale_h]
         '''
-        if scale_y is None:
-            scale_y = self.scale_y
+        if scale_h is None:
+            scale_h = self._scale_h
         skeletons = []
         NaN = 0
         for human in humans:
@@ -148,9 +152,9 @@ class SkeletonDetector(object):
             for i, body_part in human.body_parts.items(): # iterate dict
                 idx = body_part.part_idx
                 skeleton[2*idx]=body_part.x
-                skeleton[2*idx+1]=body_part.y * scale_y
+                skeleton[2*idx+1]=body_part.y * scale_h
             skeletons.append(skeleton)
-        return skeletons, scale_y
+        return skeletons, scale_h
     
 
 def test_openpose_on_webcamera():

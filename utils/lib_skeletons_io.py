@@ -33,7 +33,7 @@ NaN = 0  # `Not A Number`, which is the value for invalid data.
 
 def get_training_imgs_info(
         valid_images_txt,
-        img_filename_format="{:05d}.png"):
+        img_filename_format="{:05d}.jpg"):
     '''
     Arguments:
         valid_images_txt {str}: path of the txt file that 
@@ -43,7 +43,7 @@ def get_training_imgs_info(
             P: number of training images
             N=5: number of tags of that image, including: 
                 [cnt_action, cnt_clip, cnt_image, action_label, filepath]
-                An example: [8, 49, 2687, 'wave', 'wave_03-02-12-35-10-194/00439.png']                
+                An example: [8, 49, 2687, 'wave', 'wave_03-02-12-35-10-194/00439.jpg']                
     '''
     images_info = list()
 
@@ -83,7 +83,7 @@ def get_training_imgs_info(
                                   cnt_image, action_label, filepath]
                     assert(len(image_info) == LEN_IMG_INFO)
                     images_info.append(image_info)
-                    # An example: [8, 49, 2687, 'wave', 'wave_03-02-12-35-10-194/00439.png']
+                    # An example: [8, 49, 2687, 'wave', 'wave_03-02-12-35-10-194/00439.jpg']
 
         print("")
         print("Number of action classes = {}".format(len(actions)))
@@ -102,11 +102,11 @@ class ReadValidImagesAndActionTypesByTxt(object):
     '''
 
     def __init__(self, img_folder, valid_imgs_txt,
-                 img_filename_format="{:05d}.png"):
+                 img_filename_format="{:05d}.jpg"):
         '''
         Arguments:
             img_folder {str}: A folder that contains many sub folders.
-                Each subfolder has many images named as xxxxx.png.
+                Each subfolder has many images named as xxxxx.jpg.
             valid_imgs_txt {str}: A txt file which specifies the action labels.
                 Example:
                     jump_03-12-09-18-26-176
@@ -143,7 +143,7 @@ class ReadValidImagesAndActionTypesByTxt(object):
             img_action_label {str}: 
                 Action label obtained from folder name.
             img_info {list}: 
-                Something like [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.png"]
+                Something like [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.jpg"]
         Raise:
             RuntimeError, if fail to read next image due to wrong index or wrong filepath.
         '''
@@ -164,18 +164,18 @@ class ReadValidImagesAndActionTypesByTxt(object):
 
     def get_filename(self, index):
         # The 4th element of
-        # [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.png"]
+        # [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.jpg"]
         # See "get_training_imgs_info" for the data format
         return self.images_info[index-1][4]
 
     def get_action_label(self, index):
         # The 3rd element of
-        # [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.png"]
+        # [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.jpg"]
         # See "get_training_imgs_info" for the data format
         return self.images_info[index-1][3]
 
     def get_image_info(self, index):
-        # Something like [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.png"]
+        # Something like [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.jpg"]
         return self.images_info[index-1]
 
 

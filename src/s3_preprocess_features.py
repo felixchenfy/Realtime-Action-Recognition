@@ -18,7 +18,7 @@ if True:  # Include project path
 
     import utils.lib_commons as lib_commons
     from utils.lib_skeletons_io import load_skeleton_data
-    from utils.lib_feature_proc import extract_time_serials_features
+    from utils.lib_feature_proc import extract_multi_frame_features
 
 
 def par(path):  # Pre-Append ROOT to the path if it's not absolute
@@ -32,6 +32,10 @@ cfg = cfg_all["s3_preprocess_features.py"]
 
 CLASSES = np.array(cfg_all["classes"])
 
+# Action recognition
+WINDOW_SIZE = int(cfg_all["features"]["window_size"]) # number of frames used to extract features.
+
+# Input and output
 SRC_ALL_SKELETONS_TXT = par(cfg["input"]["all_skeletons_txt"])
 DST_PROCESSED_FEATURES = par(cfg["output"]["processed_features"])
 DST_PROCESSED_FEATURES_LABELS = par(cfg["output"]["processed_features_labels"])
@@ -45,12 +49,14 @@ def process_features(X0, Y0, video_indices, classes):
     # From: raw feature of individual image.
     # To:   time-serials features calculated from multiple raw features
     #       of multiple adjacent images, including speed, normalized pos, etc.
-    X1, Y1 = extract_time_serials_features(
-        X0, Y0, video_indices, is_adding_noise=True)
+    X1, Y1 = extract_multi_frame_features(
+        X0, Y0, video_indices, WINDOW_SIZE, 
+        is_adding_noise=True, is_print=True)
 
     # Also, add noise the to features to augment data.
-    X2, Y2 = extract_time_serials_features(
-        X0, Y0, video_indices, is_adding_noise=False)
+    X2, Y2 = extract_multi_frame_features(
+        X0, Y0, video_indices, WINDOW_SIZE,
+        is_adding_noise=False, is_print=True)
 
     X = np.vstack((X1, X2))
     Y = np.concatenate((Y1, Y2))

@@ -5,7 +5,7 @@
 Read training images based on `valid_images.txt` and then detect skeletons.
     
 In each image, there should be only 1 person performing one type of action.
-Each image is named as 00001.png, 00002.png, ...
+Each image is named as 00001.jpg, 00002.jpg, ...
 
 An example of the content of valid_images.txt is shown below:
     
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         img_displayer.display(img_disp, wait_key_ms=1)
 
         # -- Get skeleton data and save to file
-        skeletons, _ = skeleton_detector.humans_to_skels_list(humans)
+        skeletons, scale_h = skeleton_detector.humans_to_skels_list(humans)
         dict_id2skeleton = multiperson_tracker.track(
             skeletons)  # dict: (int human id) -> (np.array() skeleton)
         skels_to_save = [img_info + skeleton.tolist()

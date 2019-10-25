@@ -43,7 +43,7 @@ SRC_DETECTED_SKELETONS_FOLDER = par(cfg["input"]["detected_skeletons_folder"])
 DST_ALL_SKELETONS_TXT = par(cfg["output"]["all_skeletons_txt"])
 
 IDX_PERSON = 0  # Only use the skeleton of the 0th person in each image
-IDX_ACTION_LABEL = 3  # [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.png"]
+IDX_ACTION_LABEL = 3  # [1, 7, 54, "jump", "jump_03-02-12-34-01-795/00240.jpg"]
 
 # -- Helper function
 

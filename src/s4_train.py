@@ -86,7 +86,8 @@ def main():
     Y = np.loadtxt(SRC_PROCESSED_FEATURES_LABELS, dtype=int)  # labels
     
     # -- Train-test split
-    tr_X, te_X, tr_Y, te_Y = train_test_split(X, Y)
+    tr_X, te_X, tr_Y, te_Y = train_test_split(
+        X, Y, ratio_of_test_size=0.3)
     print("\nAfter train-test split:")
     print("Size of training data X:    ", tr_X.shape)
     print("Number of training samples: ", len(tr_Y))

@@ -1,15 +1,79 @@
+''' This script defines functions/class to process features:
+
+* def train_test_split
+
+* def extract_multi_frame_features
+    Convert raw skeleton data into features extracted from multiple frames
+    by calling `class FeatureGenerator`.
+
+* class FeatureGenerator:
+    Compute features from a video sequence of raw skeleton data.
+
+'''
+
+
 import numpy as np
 import math
 from collections import deque
 import sklearn.model_selection
 
+if True:  # Include project path
+    import sys
+    import os
+    ROOT = os.path.dirname(os.path.abspath(__file__))+"/../"
+    CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
+    sys.path.append(ROOT)
 
-def train_test_split(X, Y):
+    from tools.an_example_skeleton_of_standing import get_a_normalized_standing_skeleton
+
+# -- Settings
+NOISE_INTENSITY = 0.05
+
+# -- Constant
+
+PI = np.pi
+Inf = float("inf")
+NaN = 0
+
+
+def retrain_only_body_joints(skeleton):
+    ''' All skeleton operations in this script are done after this function.
+    The joints in the head are all removed, and the neck becomes the 0th joint.
+    '''
+    return skeleton.copy()[2:2+13*2]
+
+
+TOTAL_JOINTS = 13
+NECK = 0
+L_ARMS = [1, 2, 3]
+R_ARMS = [4, 5, 6]
+L_KNEE = 8
+L_ANKLE = 9
+R_KNEE = 11
+R_ANKLE = 12
+L_LEGS = [8, 9]
+R_LEGS = [11, 12]
+ARMS_LEGS = L_ARMS + R_ARMS + L_LEGS + R_LEGS
+L_THIGH = 7
+R_THIGH = 10
+
+STAND_SKEL_NORMED = retrain_only_body_joints(
+    get_a_normalized_standing_skeleton())
+
+# -- Functions
+
+
+def train_test_split(X, Y, ratio_of_test_size):
+    ''' Split training data by ratio '''
     IS_SPLIT_BY_SKLEARN_FUNC = True
+
+    # Use sklearn.train_test_split
     if IS_SPLIT_BY_SKLEARN_FUNC:
         RAND_SEED = 1
         tr_X, te_X, tr_Y, te_Y = sklearn.model_selection.train_test_split(
-            X, Y, test_size=0.3, random_state=RAND_SEED)
+            X, Y, test_size=ratio_of_test_size, random_state=RAND_SEED)
+
+    # Make train/test the same.
     else:
         tr_X = np.copy(X)
         tr_Y = Y.copy()
@@ -18,162 +82,142 @@ def train_test_split(X, Y):
     return tr_X, te_X, tr_Y, te_Y
 
 
-# Preprocess features
-def extract_time_serials_features(X, Y, video_indices, is_adding_noise=False):
+def extract_multi_frame_features(
+        X, Y, video_indices, window_size,
+        is_adding_noise=False, is_print=False):
+    ''' From image index and raw skeleton positions,
+        Extract features of body velocity, joint velocity, and normalized joint positions.
+    '''
     X_new = []
     Y_new = []
+    N = len(video_indices)
 
     # Loop through all data
     for i, _ in enumerate(video_indices):
 
         # If a new video clip starts, reset the feature generator
         if i == 0 or video_indices[i] != video_indices[i-1]:
-            fg = FeatureGenerator(is_adding_noise)
+            fg = FeatureGenerator(window_size, is_adding_noise)
 
         # Get features
-        success, features = fg.add_curr_skeleton(X[i, :])
+        success, features = fg.add_cur_skeleton(X[i, :])
         if success:  # True if (data length > 5) and (skeleton has enough joints)
             X_new.append(features)
             Y_new.append(Y[i])
 
+        # Print
+        if is_print and i % 2000 == 0:
+            print(f"{i}/{N}", end=", ")
+    if is_print:
+        print("")
     X_new = np.array(X_new)
+    Y_new = np.array(Y_new)
     return X_new, Y_new
 
 
-# Math-----------------------------------------------
-PI = np.pi
-Inf = float("inf")
+class Math():
+    ''' Some math operations '''
+    @staticmethod
+    def calc_dist(p1, p0):
+        return math.sqrt((p1[0]-p0[0])**2+(p1[1]-p0[1])**2)
+
+    @staticmethod
+    def pi2pi(x):
+        if x > PI:
+            x -= 2*PI
+        if x <= -PI:
+            x += 2*PI
+        return x
+
+    @staticmethod
+    def calc_relative_angle(x1, y1, x0, y0, base_angle):
+        # compute rotation from {base_angle} to {(x0,y0)->(x1,y1)}
+        if (y1 == y0) and (x1 == x0):
+            return 0
+        a1 = np.arctan2(y1-y0, x1-x0)
+        return Math.pi2pi(a1 - base_angle)
+
+    @staticmethod
+    def calc_relative_angle_v2(p1, p0, base_angle):
+        # compute rotation from {base_angle} to {p0->p1}
+        return Math.calc_relative_angle(p1[0], p1[1], p0[0], p0[1], base_angle)
 
 
-def calc_dist(p1, p0): return math.sqrt((p1[0]-p0[0])**2+(p1[1]-p0[1])**2)
-
-
-def pi2pi(x):
-    if x > PI:
-        x -= 2*PI
-    if x <= -PI:
-        x += 2*PI
-    return x
-
-
-def calc_relative_angle(x1, y1, x0, y0, base_angle):
-    # compute rotation from {base_angle} to {(x0,y0)->(x1,y1)}
-    if (y1 == y0) and (x1 == x0):
-        return 0
-    a1 = np.arctan2(y1-y0, x1-x0)
-    return pi2pi(a1 - base_angle)
-
-
-def calc_relative_angle_v2(p1, p0, base_angle):
-    return calc_relative_angle(p1[0], p1[1], p0[0], p0[1], base_angle)
-
-
-# -----------------------------------------------
-# ------------------ Process skeleton
-# -----------------------------------------------
-
-NECK = 0
-L_ARMS = [1, 2, 3]
-R_ARMS = [4, 5, 6]
-L_LEGS = [8, 9]
-R_LEGS = [11, 12]
-ARMS_LEGS = L_ARMS + R_ARMS + L_LEGS + R_LEGS
-L_THIGH = 7
-R_THIGH = 10
-NotANum = 0
+# -- Functions for processing features
 
 
 def get_joint(x, idx):
-    px = x[idx]
-    py = x[idx+1]
+    px = x[2*idx]
+    py = x[2*idx+1]
     return px, py
 
 
 def set_joint(x, idx, px, py):
-    x[idx] = px
-    x[idx+1] = py
+    x[2*idx] = px
+    x[2*idx+1] = py
     return
 
 
-# -----------------------------------------------
-# -----------------------------------------------
-# -----------------------------------------------
-# Feature selection/extraction/reduction
-# -----------------------------------------------
-# -----------------------------------------------
-# -----------------------------------------------
+def check_joint(x, idx):
+    return x[2*idx] != NaN
 
 
 class ProcFtr(object):
 
     @staticmethod
-    # This is the first step to deal with skeleton.
-    def retrain_only_body_joints(x):
-        # For all other codes, the indexing of joints are formated after this function.
-        # Joints: neck, arms, legs.
+    def drop_arms_and_legs_randomly(x, thresh=0.3):
+        ''' Randomly drop one arm or one leg with a probability of thresh '''
         x = x.copy()
-        return x[2:2+13*2]
-
-    # @staticmethod
-    # def drop_arms_and_legs(x):
-    #     N = len(ARMS_LEGS)
-    #     thre = 0.3
-    #     ra = np.random.random()
-    #     if ra<thre:
-    #         jonit_idx = int((ra / thre)*N)
-    #         set_joint(x, joint_idx, NotANum, NotANum)
+        N = len(ARMS_LEGS)
+        rand_num = np.random.random()
+        if rand_num < thresh:
+            joint_idx = int((rand_num / thresh)*N)
+            set_joint(x, joint_idx, NaN, NaN)
+        return x
 
     @staticmethod
-    def check_valid(x):
+    def has_neck_and_thigh(x):
+        ''' Check if a skeleton has a neck and at least one thigh '''
         def check_(x0, idx):
             return x0[idx] != 0 and x0[idx+1] != 0
         return check_(x, NECK) and (check_(x, L_THIGH) or check_(x, R_THIGH))
 
-    # -- Get height of the body
     @staticmethod
     def get_body_height(x):
-        if 0:
-            px0, py0 = get_joint(x, NECK)
-            px_l_thigh, py_l_thigh = get_joint(x, L_THIGH)
-            px_r_thigh, py_r_thigh = get_joint(x, R_THIGH)
+        ''' Compute height of the body, which is defined as:
+            Height = (y_neck - y_thigh)
+        '''
+        _, y0 = get_joint(x, NECK)
 
-            if px_l_thigh == NotANum and px_r_thigh == NotANum:
-                return 1
+        # Get average thigh height
+        _, y11 = get_joint(x, L_THIGH)
+        _, y12 = get_joint(x, R_THIGH)
+        if y11 == NaN and y12 == NaN:  # Invalid data
+            return 1.0
+        y11 = y12 if y11 == NaN else y11
+        y12 = y11 if y12 == NaN else y12
+        y1 = (y11 + y12) / 2
 
-            if px_l_thigh == NotANum:
-                px_l_thigh, py_l_thigh = get_joint(x, R_THIGH)
-
-            if px_r_thigh == NotANum:
-                px_r_thigh, py_r_thigh = get_joint(x, L_THIGH)
-
-            assert px_r_thigh != NotANum
-
-            px_mid = (px_l_thigh+px_r_thigh)/2
-            py_mid = (py_l_thigh+py_r_thigh)/2
-
-            body_height = math.sqrt((px0-px_mid)**2 + (py0-py_mid)**2)
-            return body_height
-        else:
-            px = x[0::2]
-            py = x[1::2]
-            return np.max(py) - np.min(py)
+        # Get body height
+        height = abs(y0 - y1)
+        return height
 
     @staticmethod
     def remove_body_offset(x):
+        ''' The origin is the neck.
+        TODO: Deal with empty data.
+        '''
         x = x.copy()
-        if 0:
-            # -- Minus the neck
-            px0, py0 = get_joint(x, NECK)
-            x[0::2] = x[0::2] - px0
-            x[1::2] = x[1::2] - py0
-        else:
-            x[0::2] -= x[0::2].mean()
-            x[1::2] -= x[1::2].mean()
-
+        px0, py0 = get_joint(x, NECK)
+        x[0::2] = x[0::2] - px0
+        x[1::2] = x[1::2] - py0
         return x
 
     @staticmethod
     def joint_pos_2_angle_and_length(x):
+        ''' Change the representation of skeletons
+            From xy positions to angle and length.
+        '''
 
         # ---------------------- Get joint positions ----------------------
         class JointPosExtractor(object):
@@ -214,9 +258,9 @@ class ProcFtr(object):
                 self.x_lengths = np.zeros((12,))
 
             def set_next_angle_len(self, next_joint, base_joint, base_angle):
-                angle = calc_relative_angle_v2(
+                angle = Math.calc_relative_angle_v2(
                     next_joint, base_joint, base_angle)
-                dist = calc_dist(next_joint, base_joint)
+                dist = Math.calc_dist(next_joint, base_joint)
                 self.f_angles[self.j] = angle
                 self.x_lengths[self.j] = dist
                 self.j += 1
@@ -240,141 +284,170 @@ class ProcFtr(object):
         tmp2.set_next_angle_len(plankle, plknee, PI/2)
 
         # Output
-        # print([val/PI*180 for val in tmp2.f_angles])
-        f_angles = tmp2.f_angles
-        f_lens = tmp2.x_lengths
-        # x_res = np.concatenate((tmp2.f_angles, tmp2.x_lengths))
-        return f_angles, f_lens
+        features_angles = tmp2.f_angles
+        features_lens = tmp2.x_lengths
+        return features_angles, features_lens
 
-# =================================================
-# =================================================
-# =================================================
-# =================================================
-# =================================================
+# -- The main class for extracting features
 
 
 class FeatureGenerator(object):
-    def __init__(self, is_adding_noise=False):
-        self.reset()
-        self.FEATURE_T_LEN = 5
+    def __init__(self,
+                 window_size,
+                 is_adding_noise=False):
+        '''
+        Arguments:
+            window_size {int}: Number of adjacent frames for extracting features. 
+            is_adding_noise {bool}: Is adding noise to the joint positions and scale.
+            noise_intensity {float}: The noise relative to the body height. 
+        '''
+        self._window_size = window_size
         self._is_adding_noise = is_adding_noise
+        self._noise_intensity = NOISE_INTENSITY
+        self.reset()
 
     def reset(self):
-        self.x_deque = deque()
-        self.angles_deque = deque()
-        self.lens_deque = deque()
-        self.prev_x = None
+        ''' Reset the FeatureGenerator '''
+        self._x_deque = deque()
+        self._angles_deque = deque()
+        self._lens_deque = deque()
+        self._pre_x = None
 
-    def maintain_deque_size(self):
-        if len(self.x_deque) > self.FEATURE_T_LEN:
-            self.x_deque.popleft()
-            self.angles_deque.popleft()
-            self.lens_deque.popleft()
+    def add_cur_skeleton(self, skeleton):
+        ''' Input a new skeleton, return the extracted feature.
+        Returns:
+            is_success {bool}: Return the feature only when
+                the historical input skeletons are more than self._window_size.
+            features {np.array} 
+        '''
 
-    def add_curr_skeleton(self, skeleton):
-        # return: bool_success, features
+        x = retrain_only_body_joints(skeleton)
 
-        # return (skeleton.copy())[2:2+13*2]
-        x = ProcFtr.retrain_only_body_joints(skeleton)
-
-        if ProcFtr.check_valid(x) == False:
+        if not ProcFtr.has_neck_and_thigh(x):
             self.reset()
             return False, None
 
         else:
+            ''' The input skeleton has a neck and at least one thigh '''
+            # -- Preprocess x
             # Fill zeros, compute angles/lens
-            self.fill_zeros(x)
+            x = self._fill_invalid_data(x)
             if self._is_adding_noise:
-                self.add_noises(x)
-            angles, lens = ProcFtr.joint_pos_2_angle_and_length(x)
+                # Add noise druing training stage to augment data
+                x = self._add_noises(x, self._noise_intensity)
+            x = np.array(x)
+            # angles, lens = ProcFtr.joint_pos_2_angle_and_length(x) # deprecate
 
             # Push to deque
-            self.x_deque.append(x)
-            self.angles_deque.append(angles)
-            self.lens_deque.append(lens)
+            self._x_deque.append(x)
+            # self._angles_deque.append(angles) # deprecate
+            # self._lens_deque.append(lens) # deprecate
 
-            self.maintain_deque_size()
-            self.prev_x = x.copy()
+            self._maintain_deque_size()
+            self._pre_x = x.copy()
 
-            # Extract features
-            if len(self.x_deque) >= self.FEATURE_T_LEN:
-
+            # -- Extract features
+            if len(self._x_deque) < self._window_size:
+                return False, None
+            else:
                 # -- Normalize all 1~t features
-                h_list = [ProcFtr.get_body_height(xi) for xi in self.x_deque]
+                h_list = [ProcFtr.get_body_height(xi) for xi in self._x_deque]
                 mean_height = np.mean(h_list)
-                xnorm_list = [ProcFtr.remove_body_offset(
-                    xi)/mean_height for xi in self.x_deque]
+                xnorm_list = [ProcFtr.remove_body_offset(xi)/mean_height
+                              for xi in self._x_deque]
 
                 # -- Get features of pose/angles/lens
-                f_poses = self.deque_to_1darray(xnorm_list)
-                f_angles = self.deque_to_1darray(self.angles_deque)
-                f_lens = self.deque_to_1darray(self.lens_deque) / mean_height
+                f_poses = self._deque_features_to_1darray(xnorm_list)
+                # f_angles = self._deque_features_to_1darray(self._angles_deque) # deprecate
+                # f_lens = self._deque_features_to_1darray(
+                #     self._lens_deque) / mean_height # deprecate
 
                 # -- Get features of motion
-                f_v_center = self.compute_v_center(
-                    self.x_deque, step=1) / mean_height  # len = (t=4)*2 = 8
-                # Add weights to this feature
-                f_v_center = np.repeat(f_v_center, 10)
-                f_v_joints = self.compute_v_all_joints(
+
+                f_v_center = self._compute_v_center(
+                    self._x_deque, step=1) / mean_height  # len = (t=4)*2 = 8
+                f_v_center = np.repeat(f_v_center, 10)  # repeat to add weight
+
+                f_v_joints = self._compute_v_all_joints(
                     xnorm_list, step=1)  # len = (t=(5-1)/step)*12*2 = 96
 
-                # -- Output (Choose some features you want)
-                # print("f_poses: ",f_poses.shape)
-                # print("f_v_joints: ",f_v_joints.shape)
-                # print("f_v_center: ",f_v_center.shape)
+                # -- Output
                 features = np.concatenate((f_poses, f_v_joints, f_v_center))
-                # features = self.deque_to_1darray(self.x_deque)
-
                 return True, features.copy()
-            else:
-                return False, None
 
-    def compute_v_center(self, x_deque, step):
+    def _maintain_deque_size(self):
+        if len(self._x_deque) > self._window_size:
+            self._x_deque.popleft()
+        if len(self._angles_deque) > self._window_size:
+            self._angles_deque.popleft()
+        if len(self._lens_deque) > self._window_size:
+            self._lens_deque.popleft()
+
+    def _compute_v_center(self, x_deque, step):
         vel = []
         for i in range(0, len(x_deque) - step, step):
             dxdy = x_deque[i+step][0:2] - x_deque[i][0:2]
             vel += dxdy.tolist()
         return np.array(vel)
 
-    def compute_v_all_joints(self, xnorm_list, step):
+    def _compute_v_all_joints(self, xnorm_list, step):
         vel = []
         for i in range(0, len(xnorm_list) - step, step):
             dxdy = xnorm_list[i+step][:] - xnorm_list[i][:]
             vel += dxdy.tolist()
         return np.array(vel)
 
-    def fill_zeros(self, x):
-        if self.prev_x is not None:
-            def get_x_y_x0_y0(xxx):
-                px = xxx[0::2]
-                py = xxx[1::2]
-                px0, py0 = get_joint(xxx, NECK)
-                return px, py, px0, py0
-            curr_px, curr_py, curr_px0, curr_py0 = get_x_y_x0_y0(x)
-            prev_px, prev_py, prev_px0, prev_py0 = get_x_y_x0_y0(self.prev_x)
+    def _fill_invalid_data(self, x):
+        ''' Fill the NaN elements in x with
+            their relative-to-neck position in the preious x.
+        Argument:
+            x {np.array}: a skeleton that has a neck and at least a thigh.
+        '''
+        res = x.copy()
 
-            miss_px = np.where(curr_px == NotANum)
-            miss_py = np.where(curr_py == NotANum)
-            curr_px[miss_px] = curr_px0 + (prev_px[miss_px] - prev_px0)
-            curr_py[miss_py] = curr_py0 + (prev_py[miss_px] - prev_py0)
+        def get_px_py_px0_py0(x):
+            px = x[0::2]  # list of x
+            py = x[1::2]  # list of y
+            px0, py0 = get_joint(x, NECK)  # neck
+            return px, py, px0, py0
+        cur_px, cur_py, cur_px0, cur_py0 = get_px_py_px0_py0(x)
+        cur_height = ProcFtr.get_body_height(x)
 
-    def add_noises(self, x):
-        height = max(x[1::2]) - min(x[1::2])
-        N = len(x)//2  # joints number
+        is_lack_knee = check_joint(x, L_KNEE) or check_joint(x, R_KNEE)
+        is_lack_ankle = check_joint(x, L_ANKLE) or check_joint(x, R_ANKLE)
+        if (self._pre_x is None) or is_lack_knee or is_lack_ankle:
+            # If preious data is invalid or there is no knee or ankle,
+            # then fill the data based on the STAND_SKEL_NORMED.
+            for i in range(TOTAL_JOINTS*2):
+                if res[i] == NaN:
+                    res[i] = (cur_px0 if i % 2 == 0 else cur_py0) + \
+                        cur_height * STAND_SKEL_NORMED[i]
+            return res
 
-        if 1:  # absolute noise # TODO, fix it.
-            NOISE_INTENSE = 0.01  # 200x200 image, 1 pixel = 0.005
-            noises = (np.random.random((2*N,))*2 - 1.0) * NOISE_INTENSE
-        else:  # relative noise
-            NOISE_INTENSE = 0.05
-            width = max(x[::2]) - min(x[::2])
-            width_noises = width * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
-            height = max(x[1::2]) - min(x[1::2])
-            height_noises = height * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
-        for i in range(2*N):
-            x[i] += noises[i] if x[i] != 0 else 0
+        pre_px, pre_py, pre_px0, pre_py0 = get_px_py_px0_py0(self._pre_x)
+        pre_height = ProcFtr.get_body_height(self._pre_x)
 
-    def deque_to_1darray(self, deque_data):
+        scale = cur_height / pre_height
+
+        bad_idxs = np.nonzero(cur_px == NaN)[0]
+        if not len(bad_idxs):  # No invalid data
+            return res
+
+        cur_px[bad_idxs] = cur_px0 + (pre_px[bad_idxs] - pre_px0) * scale
+        cur_py[bad_idxs] = cur_py0 + (pre_py[bad_idxs] - pre_py0) * scale
+        res[::2] = cur_px
+        res[1::2] = cur_py
+        return res
+
+    def _add_noises(self, x, intensity):
+        ''' Add noise to x with a ratio relative to the body height '''
+        height = ProcFtr.get_body_height(x)
+        randoms = (np.random.random(x.shape, ) - 0.5) * 2 * intensity * height
+        x = [(xi + randoms[i] if xi != 0 else xi)
+             for i, xi in enumerate(x)]
+        return x
+
+    def _deque_features_to_1darray(self, deque_data):
         features = []
         for i in range(len(deque_data)):
             next_feature = deque_data[i].tolist()
@@ -382,7 +455,7 @@ class FeatureGenerator(object):
         features = np.array(features)
         return features
 
-    def deque_to_2darray(self, deque_data):
+    def _deque_features_to_2darray(self, deque_data):
         features = []
         for i in range(len(deque_data)):
             next_feature = deque_data[i].tolist()

@@ -9,13 +9,28 @@
 **Highlights**: 
 9 actions; multiple people (<=5); Real-time and multi-frame based recognition algorithm.
 
-**Updates**: On 2019-10-26, I refactored the code; added more comments; and put all settings into the [config/config.yaml](config/config.yaml) file, including: action classes, input and output of each file, OpenPose settings, etc. 
+**Updates**: On 2019-10-26, I refactored the code; added more comments; and put all settings into the [config/config.yaml](config/config.yaml) file, including: classes of actions, input and output of each file, OpenPose settings, etc. 
 
 **Project**: This is my final project for EECS-433 Pattern Recognition in Northwestern Univeristy on March 2019. A simpler version where two teammates and I worked on is [here](https://github.com/ChengeYang/Human-Pose-Estimation-Benchmarking-and-Action-Recognition).
 
 **Warning:** Since I used the 10 fps video and 0.5s-window for training, you must also limit your video fps to be about 10 fps (7~12 fps) if you want to test my pretrained model on your own video or web camera. 
 
 **Contents:**
+- [1. Algorithm](#1-algorithm)
+- [2. Install Dependency (OpenPose)](#2-install-dependency--openpose-)
+- [3. Program structure](#3-program-structure)
+- [4. How to run: Inference](#4-how-to-run--inference)
+  * [Introduction](#introduction)
+  * [Test on video file](#test-on-video-file)
+  * [Test on a folder of images](#test-on-a-folder-of-images)
+  * [Test on web camera](#test-on-web-camera)
+- [5. Training data](#5-training-data)
+  * [Download my data](#download-my-data)
+  * [Data format](#data-format)
+  * [Classes](#classes)
+- [6. How to run: Training](#6-how-to-run--training)
+- [7. Result and Performance](#7-result-and-performance)
+
 
 
 # 1. Algorithm
@@ -35,8 +50,6 @@ See `class Tracker` in [lib_tracker.py](utils/lib_tracker.py)
 *  Mean filtering the prediction scores between 2 frames. Add label above the person if the score is larger than 0.8. See `class ClassifierOnlineTest` in [lib_classifier.py](utils/lib_classifier.py)
 
 For more details about how the features are extracted, please see my [report](https://github.com/felixchenfy/Data-Storage/blob/master/EECS-433-Pattern-Recognition/FeiyuChen_Report_EECS433.pdf).
-
-
 
 
 
@@ -81,17 +94,134 @@ cd $MyRoot/src/githubs/tf-pose-estimation
 python run.py --model=mobilenet_thin --resize=432x368 --image=./images/p1.jpg
 ```
 
-# 3. Data
+# 3. Program structure
+
+The 5 main scripts are under `src/`. They are named under the order of excecution:
+```
+src/s1_get_skeletons_from_training_imgs.py    
+src/s2_put_skeleton_txts_to_a_single_txt.py
+src/s3_preprocess_features.py
+src/s4_train.py 
+src/s5_test.py
+```
+
+The input and output of these files as well as some parameters are defined in the configuration file [config/config.yaml](config/config.yaml). I paste part of it below just to provide an intuition:
+
+``` yaml
+classes: ['stand', 'walk', 'run', 'jump', 'sit', 'squat', 'kick', 'punch', 'wave']
+
+image_filename_format: "{:05d}.jpg"
+skeleton_filename_format: "{:05d}.txt"
+
+features:
+  window_size: 5 # Number of adjacent frames for extracting features. 
+
+s1_get_skeletons_from_training_imgs.py:
+  openpose:
+    model: cmu # cmu or mobilenet_thin. "cmu" is more accurate but slower.
+    img_size: 656x368 #  656x368, or 432x368, 336x288. Bigger is more accurate.
+  input:
+    images_description_txt: data/source_images3/valid_images.txt
+    images_folder: data/source_images3/
+  output:
+    images_info_txt: data_proc/raw_skeletons/images_info.txt
+    detected_skeletons_folder: &skels_folder data_proc/raw_skeletons/skeleton_res/
+    viz_imgs_folders: data_proc/raw_skeletons/image_viz/
+
+s2_put_skeleton_txts_to_a_single_txt.py:
+  input:
+    # A folder of skeleton txts. Each txt corresponds to one image.
+    detected_skeletons_folder: *skels_folder
+  output:
+    # One txt containing all valid skeletons.
+    all_skeletons_txt: &skels_txt data_proc/raw_skeletons/skeletons_info.txt
+
+s3_preprocess_features.py:
+  input: 
+    all_skeletons_txt: *skels_txt
+  output:
+    processed_features: &features_x data_proc/features_X.csv
+    processed_features_labels: &features_y data_proc/features_Y.csv
+
+s4_train.py:
+  input:
+    processed_features: *features_x
+    processed_features_labels: *features_y
+  output:
+    model_path: model/trained_classifier.pickle
+```
+
+For how to run the main scripts, please see the Section `4. How to run: Inference` and `6. How to run: Training`.
+
+# 4. How to run: Inference
+
+## Introduction
+The script [src/s5_test.py](src/s5_test.py) is for doing real-time action recognition. 
 
 
-## Download
+The classes are set in [config/config.yaml](config/config.yaml) by the key `classes`.
+
+The supported input includes **video file**, **a folder of images**, and **web camera**, which is set by the command line arguments `--data_type` and `--data_path`.
+
+The trained model is set by `--model_path`, e.g.:[model/trained_classifier.pickle](model/trained_classifier.pickle).
+
+The output is set by `--output_folder`, e.g.: output/.
+
+The test data (a video, and a folder of images) are already included under the [data_test/](data_test/) folder.
+
+An example result of the input video "exercise.avi" is:
+
+```
+output/exercise/
+├── skeletons
+│   ├── 00000.txt
+│   ├── 00001.txt
+│   └── ...
+└── video.avi
+```
+Also, the result will be displayed by cv2.imshow().
+
+Example commands are given below:
+
+## Test on video file
+``` bash
+python src/s5_test.py \
+    --model_path model/trained_classifier.pickle \
+    --data_type video \
+    --data_path data_test/exercise.avi \
+    --output_folder output
+```
+
+## Test on a folder of images
+``` bash
+python src/s5_test.py \
+    --model_path model/trained_classifier.pickle \
+    --data_type folder \
+    --data_path data_test/apple/ \
+    --output_folder output
+```
+
+## Test on web camera
+``` bash
+python src/s5_test.py \
+    --model_path model/trained_classifier.pickle \
+    --data_type webcam \
+    --data_path 0 \
+    --output_folder output
+```
+
+# 5. Training data
+
+
+## Download my data
 Follow the instructions in [data/download_link.md](data/download_link.md) to download the data.
 
-## Format
+## Data format
 
-Each data subfolder contains images named as `00001.png`, `00002.png`, etc.
+Each data subfolder contains images named as `00001.jpg`, `00002.jpg`, etc. To naming format is defined in [config/config.yaml](config/config.yaml) by `image_filename_format: "{:05d}.jpg"`.
 
-The label and index are configured by this txt [data/source_images3/valid_images.txt](data/source_images3/valid_images.txt). A snapshot is shown below:
+The label and index are configured by this txt: [data/source_images3/valid_images.txt](data/source_images3/valid_images.txt).  
+A snapshot is shown below:
 ```
 jump_03-02-12-34-01-795
 52 59
@@ -103,42 +233,35 @@ The 2nd and following lines specify the `staring index` and `ending index` of th
 
 ## Classes
 
-The classes are set in [config/config.yaml](config/config.yaml) under the key word `classes`. No matter how many classes you put in the training data (set by the folder name), only the classes set by this **config.yaml** file are used for training and inference.
+The classes are set in [config/config.yaml](config/config.yaml) under the key word `classes`. No matter how many classes you put in the training data (set by the folder name), only the ones that match with the classes in **config.yaml** are used for training and inference.
 
 
 
-# 3. How to run: Inference
+# 6. How to run: Training
 
-## Test on webcam
-> $ python src/run_detector.py --source webcam
+First, you may read
+* Section `5. Training data`
+* Section `3. Program structure`
+* [config/config.yaml](config/config.yaml)
 
-* 2). Test video frames from a folder
-  > $ python src/run_detector.py --source folder  
+to know the training data format and the input and output of each script.
 
-  But before running, you need to modify the folder path in "**def set_source_images_from_folder()**" in [src/run_detector.py](src/run_detector.py).
+Then, follow the following steps to do the training:
+* Collect your own data and label them, or use my data.
+* If you are using your data, change the values of `classes` and `images_description_txt` and `images_folder` inside [config/config.yaml](config/config.yaml).
+* Depend on your need, you may change parameters in [config/config.yaml](config/config.yaml).
+* Finally, run the following scripts one by one:
+    ``` bash
+    python src/s1_get_skeletons_from_training_imgs.py
+    python src/s2_put_skeleton_txts_to_a_single_txt.py 
+    python src/s3_preprocess_features.py
+    python src/s4_train.py 
+    ```
 
-# 4. How to run: Training
+By default, the intermediate data are saved to [data_proc/](data_prco/), and the model is saved to [model/trained_classifier.pickle](model/trained_classifier.pickle).  
+After training is done, you can run the inference script `src/s5_test.py` as described in Section `4. How to run: Inference`.
 
-**1).** First, detect skeleton from training images and save result to txt:
-> $ python src/run_detector.py --source txtscript
-
-* Input: Images are from "**data/source_images3/**". See [this file](data/download_link.md) for downloading.
-* Output:  
-    (1) Skeleton positions of each image in "**src/skeleton_data/skeletons5/**" in txt format.  
-    (2) Images with drawn skeleton, saved in "**src/skeleton_data/skeletons5_images/**".
-
-**2).** Second, put skeleton from multiple txt into a single txt file:
-> $ python src/scripts/skeletons_info_generator.py
-
-* Input: "**src/skeleton_data/skeletons5/**". 
-* Output:  "**src/skeleton_data/skeletons5_info.txt**"
-
-**3).** Third, open jupyter notebook, and run this file: "**src/Train.ipynb**".  
-The trained model will be saved to "**model/trained_classifier.pickle**".
-
-Now, it's ready to run the real-time demo from your web camera.
-
-# 5. Result and Performance
+# 7. Result and Performance
 
 Unfortunately this project only works well on myself, because I only used the video of myself.
 
@@ -146,4 +269,4 @@ The performance is bad for (1) people who have different body shape, (2) people 
 
 Besides, my simple tracking algorithm only works for a few number of people (maybe 5). 
 
-So I guess you can only use this project for course demo, but not for any useful applications ... T.T 
+Due to the not-so-good performance of action recognition, I guess you can only use this project for course demo, but not for any commercial applications ... T.T 

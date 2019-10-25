@@ -17,7 +17,7 @@ class Tracker(object):
         1. For S1[i],   S2[j] is the most nearest skeleton in S2.
         2. For S2[j],   S1[i] is the most nearest skeleton in S1.
         3. The distance between S1[i] and S2[j] are smaller than self._dist_thresh.
-            (Unit: The image height and width is 1.0)
+            (Unit: The image width is 1.0, the image height is scale_h=rows/cols)
 
         For unmatched skeletons in S2, they are considered 
             as new people appeared in the video.
@@ -86,6 +86,7 @@ class Tracker(object):
         ''' Skeletons are sorted based on the distance
         between neck and image center, from small to large.
         A skeleton near center will be processed first and be given a smaller human id.
+        Here the center is defined as (0.5, 0.5), although it's not accurate due to h_scale.
         '''
         def calc_dist(p1, p2): return (
             (p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
