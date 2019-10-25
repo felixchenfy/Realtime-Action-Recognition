@@ -1,10 +1,11 @@
-''' 
-Load skeleton data from `skeletons_info.txt`, process data, 
-and then save classes, features, and labels to .csv file.
-'''
-
 #!/usr/bin/env python
 # coding: utf-8
+
+''' 
+Load skeleton data from `skeletons_info.txt`, 
+process data, 
+and then save features and labels to .csv file.
+'''
 
 import numpy as np
 
@@ -15,16 +16,25 @@ if True:  # Include project path
     CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
     sys.path.append(ROOT)
 
-    from utils.lib_load_skeleton import load_skeleton_data
+    import utils.lib_commons as lib_commons
+    from utils.lib_skeletons_io import load_skeleton_data
     from utils.lib_feature_proc import extract_time_serials_features
+
+
+def par(path):  # Pre-Append ROOT to the path if it's not absolute
+    return ROOT + path if (path and path[0] != "/") else path
 
 # -- Settings
 
-SRC_SKELETONS_DATA_TXT = ROOT + "data_proc/raw_skeletons/skeletons_info.txt"
 
-DST_CLASSES = ROOT + "data_proc/classes.csv"
-DST_PROCESSED_FEATURES = ROOT + "data_proc/features_X.csv"
-DST_PROCESSED_FEATURES_LABELS = ROOT + "data_proc/features_Y.csv"
+cfg_all = lib_commons.read_yaml(ROOT + "config/config.yaml")
+cfg = cfg_all["s3_preprocess_features.py"]
+
+CLASSES = np.array(cfg_all["classes"])
+
+SRC_ALL_SKELETONS_TXT = par(cfg["input"]["all_skeletons_txt"])
+DST_PROCESSED_FEATURES = par(cfg["output"]["processed_features"])
+DST_PROCESSED_FEATURES_LABELS = par(cfg["output"]["processed_features_labels"])
 
 # -- Functions
 
@@ -47,47 +57,28 @@ def process_features(X0, Y0, video_indices, classes):
 
     return X, Y
 
-
-def write_strings(filepath, strings):
-    ''' Write a list of string to file.
-        One string per row.
-    '''
-    with open(filepath, 'w') as f:
-        for s in strings:
-            f.write(s + "\n")
-
-
-def create_folders(filepaths):
-    ''' Create a folder for each filepath '''
-    for filepath in filepaths:
-        folder = os.path.dirname(filepath)
-        os.makedirs(folder, exist_ok=True)
-
 # -- Main
 
 
 def main():
     ''' 
     Load skeleton data from `skeletons_info.txt`, process data, 
-    and then save classes, features, and labels to .csv file.
+    and then save features and labels to .csv file.
     '''
 
     # Load data
-    X0, Y0, video_indices, classes = load_skeleton_data(SRC_SKELETONS_DATA_TXT)
+    X0, Y0, video_indices = load_skeleton_data(SRC_ALL_SKELETONS_TXT, CLASSES)
 
     # Process features
     print("\nExtracting time-serials features ...")
-    X, Y = process_features(X0, Y0, video_indices, classes)
+    X, Y = process_features(X0, Y0, video_indices, CLASSES)
     print(f"X.shape = {X.shape}, len(Y) = {len(Y)}")
 
     # Save data
-    print("\nWriting classes, features, and labesl to disk ...")
-    create_folders(filepaths=[DST_CLASSES,
-                              DST_PROCESSED_FEATURES,
-                              DST_PROCESSED_FEATURES_LABELS])
+    print("\nWriting features and labesl to disk ...")
 
-    write_strings(DST_CLASSES, classes)
-    print("Save classes to: " + DST_CLASSES)
+    os.makedirs(os.path.dirname(DST_PROCESSED_FEATURES), exist_ok=True)
+    os.makedirs(os.path.dirname(DST_PROCESSED_FEATURES_LABELS), exist_ok=True)
 
     np.savetxt(DST_PROCESSED_FEATURES, X, fmt="%.5f")
     print("Save features to: " + DST_PROCESSED_FEATURES)

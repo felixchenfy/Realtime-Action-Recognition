@@ -257,8 +257,7 @@ class FeatureGenerator(object):
     def __init__(self, is_adding_noise=False):
         self.reset()
         self.FEATURE_T_LEN = 5
-        self.is_adding_noise = is_adding_noise
-        pass
+        self._is_adding_noise = is_adding_noise
 
     def reset(self):
         self.x_deque = deque()
@@ -285,7 +284,7 @@ class FeatureGenerator(object):
         else:
             # Fill zeros, compute angles/lens
             self.fill_zeros(x)
-            if self.is_adding_noise:
+            if self._is_adding_noise:
                 self.add_noises(x)
             angles, lens = ProcFtr.joint_pos_2_angle_and_length(x)
 
@@ -360,21 +359,18 @@ class FeatureGenerator(object):
             curr_py[miss_py] = curr_py0 + (prev_py[miss_px] - prev_py0)
 
     def add_noises(self, x):
+        height = max(x[1::2]) - min(x[1::2])
         N = len(x)//2  # joints number
 
-        def rand_noise(size, intense):
-            return (np.random.random(size)*2 - 1.0) * intense
-
-        if 1:  # absolute noise
+        if 1:  # absolute noise # TODO, fix it.
             NOISE_INTENSE = 0.01  # 200x200 image, 1 pixel = 0.005
-            noises = rand_noise((2*N,), NOISE_INTENSE)
+            noises = (np.random.random((2*N,))*2 - 1.0) * NOISE_INTENSE
         else:  # relative noise
-            pass
-            # NOISE_INTENSE = 0.05
-            # width = max(x[::2]) - min(x[::2])
-            # width_noises = width * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
-            # height = max(x[1::2]) - min(x[1::2])
-            # height_noises = height * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
+            NOISE_INTENSE = 0.05
+            width = max(x[::2]) - min(x[::2])
+            width_noises = width * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
+            height = max(x[1::2]) - min(x[1::2])
+            height_noises = height * (np.random.random((N,))*2 - 1.0) * NOISE_INTENSE
         for i in range(2*N):
             x[i] += noises[i] if x[i] != 0 else 0
 

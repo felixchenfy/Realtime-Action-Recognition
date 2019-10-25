@@ -1,49 +1,54 @@
 '''
-This script implements a simple tracking algorithm.
-
-# Method:
-For previous skeletons(S1) and current skeletons(S2),
-S1[i] and S2[j] are matched, if:
-1. For S1[i], S2[j] is the most nearest skeleton in S2.
-2. For S2[j], S1[i] is the most nearest skeleton in S1.
-3. The distance between S1[i] and S2[j] are smaller than DIST_THRESH.
-    (Unit: The image height and width is 1.0)
-For unmatched skeletons in S2, they are considered as new people appeared in the video.
-
-# Parameters: 
-DIST_THRESH, MAX_HUMANS_TO_TRACK
+This script implements a simple `Tracker` class.
 '''
 
 
-# -- Libraries
 import numpy as np
 import cv2
 import math
 import functools
 
 
-# -- Settings
-DIST_THRESH = 0.4  # Unit: the image width and height is 1.0
-MAX_HUMANS_TO_TRACK = 5
-
-
-# -- Function
-
 class Tracker(object):
+    ''' A simple tracker:
 
-    def __init__(self):
+        For previous skeletons(S1) and current skeletons(S2),
+        S1[i] and S2[j] are matched, if:
+        1. For S1[i],   S2[j] is the most nearest skeleton in S2.
+        2. For S2[j],   S1[i] is the most nearest skeleton in S1.
+        3. The distance between S1[i] and S2[j] are smaller than self._dist_thresh.
+            (Unit: The image height and width is 1.0)
+
+        For unmatched skeletons in S2, they are considered 
+            as new people appeared in the video.
+    '''
+
+    def __init__(self, dist_thresh=0.4, max_humans=5):
+        ''' 
+        Arguments:
+            dist_thresh {float}: 0.0~1.0. The distance between the joints
+                of the two matched people should be smaller than this.
+                The image width and height has a unit length of 1.0.
+            max_humans {int}: max humans to track.
+                If the number of humans exceeds this threshold, the new
+                skeletons will be abandoned instead of taken as new people.
+        '''
+        self._dist_thresh = dist_thresh
+        self._max_humans = max_humans
+
         self._dict_id2skeleton = {}
         self._cnt_humans = 0
 
     def track(self, curr_skels):
-        ''' Track the input skeletons and obtain their corresponding human id. 
+        ''' Track the input skeletons by matching them with previous skeletons,
+            and then obtain their corresponding human id. 
         Arguments:
-            curr_skels {list of list}: each list represents a person's skeletons positions
+            curr_skels {list of list}: each sub list is a person's skeleton.
         Returns:
-            self._dict_id2skeleton {dict}:  a dict which maps human id to his/her skeleton
+            self._dict_id2skeleton {dict}:  a dict mapping human id to his/her skeleton.
         '''
 
-        curr_skels = self._sort_skeletons_by_neck(curr_skels)
+        curr_skels = self._sort_skeletons_by_dist_to_center(curr_skels)
         N = len(curr_skels)
 
         # Match skeletons between curr and prev
@@ -65,7 +70,7 @@ class Tracker(object):
 
         # Add unmatched skeletons (which are new skeletons) to the list
         num_humans_to_add = min(len(unmatched_idx),
-                                MAX_HUMANS_TO_TRACK - len(good_matches))
+                                self._max_humans - len(good_matches))
         for i in range(num_humans_to_add):
             self._cnt_humans += 1
             self._dict_id2skeleton[self._cnt_humans] = np.array(
@@ -77,8 +82,11 @@ class Tracker(object):
         x, y = skeleton[2], skeleton[3]
         return x, y
 
-    def _sort_skeletons_by_neck(self, skeletons):
-        # Skeletons are sorted by which is nearer to the image center
+    def _sort_skeletons_by_dist_to_center(self, skeletons):
+        ''' Skeletons are sorted based on the distance
+        between neck and image center, from small to large.
+        A skeleton near center will be processed first and be given a smaller human id.
+        '''
         def calc_dist(p1, p2): return (
             (p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
 
@@ -94,7 +102,8 @@ class Tracker(object):
     def _match_features(self, features1, features2):
         ''' Match the features.　Output the matched indices.
         Returns:
-            good_matches {dict}: a dict which matches the index of features2 to index of features1.
+            good_matches {dict}: a dict which matches the 
+                `index of features2` to `index of features1`.
         '''
         features1, features2 = np.array(features1), np.array(features2)
 
@@ -141,7 +150,7 @@ class Tracker(object):
                                 for col in range(n2)]
 
             for i1, i2 in enumerate(matches_f1_to_f2):
-                if matches_f2_to_f1[i2] == i1 and dist_matrix[i1, i2] < DIST_THRESH:
+                if matches_f2_to_f1[i2] == i1 and dist_matrix[i1, i2] < self._dist_thresh:
                     good_matches[i2] = i1
 
             if 0:

@@ -1,12 +1,16 @@
 The source images for training are stored here.
 
-Download from this link:
-https://drive.google.com/file/d/1nBOQDbmJvR2KOtJDpASmXwapbFV-PSrs/view?usp=sharing
+## Download data
 
-Unzip it. You will see the folder: **source_images3**. 
-Inside it, there is a "**valid_images.txt**", which describes the label of each image that I used for training.
+Please download the data from
+* Google driver: https://drive.google.com/file/d/1nBOQDbmJvR2KOtJDpASmXwapbFV-PSrs/view?usp=sharing
+* or Baidu Cloud: https://pan.baidu.com/s/1ef1Q5YqVOrUb_45apRD4cA
 
-* Folders structure
+Unzip the data and you will see the folder: `source_images3`. Use it to replace the `data/source_images3`.
+
+Inside the folder, there is a `valid_images.txt`, which describes the label of each image that I used for training. (For your conviniene, I've included it in this repo, and you can view it at [data/source_images3/valid_images.txt](source_images3/valid_images.txt).)
+
+## Data Folder structure
 
   ```
   data/source_images3
@@ -37,7 +41,7 @@ Inside it, there is a "**valid_images.txt**", which describes the label of each 
   └── wave_03-13-13-23-25-262
   ```
 
-* Images for training:
+## Images for training:
 
   Number of actions = 9  
   Total training images = 11202  

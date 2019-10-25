@@ -31,9 +31,9 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     classes = classes[unique_labels(y_true, y_pred)]
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
+        print("Display normalized confusion matrix ...")
     else:
-        print('Confusion matrix, without normalization')
+        print('Display confusion matrix without normalization ...')
 
     # print(cm)
 
@@ -72,7 +72,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
 # Drawings ==============================================================
 
-def draw_action_result(img_display, id, skeleton, str_action_type):
+def draw_action_result(img_display, id, skeleton, str_action_label):
     font = cv2.FONT_HERSHEY_SIMPLEX
 
     minx = 999
@@ -112,4 +112,4 @@ def draw_action_result(img_display, id, skeleton, str_action_type):
     # TEST_ROW = int( skeleton[3] * img_display.shape[0])
 
     img_display = cv2.putText(
-        img_display, "P"+str(id % 10)+": "+str_action_type, (TEST_COL, TEST_ROW), font, fontsize, (0, 0, 255), linewidth, cv2.LINE_AA)
+        img_display, "P"+str(id % 10)+": "+str_action_label, (TEST_COL, TEST_ROW), font, fontsize, (0, 0, 255), linewidth, cv2.LINE_AA)

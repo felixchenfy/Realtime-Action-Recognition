@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 ''' This script does:
-1. Load features and classes from csv files
+1. Load features and labels from csv files
 2. Train the model
 3. Save the model to `model/` folder.
 '''
@@ -18,30 +21,30 @@ if True:  # Include project path
     sys.path.append(ROOT)
 
     import utils.lib_plot as lib_plot
+    import utils.lib_commons as lib_commons
     from utils.lib_feature_proc import train_test_split
     from utils.lib_classifier import ClassifierOfflineTrain
 
+
+
+def par(path):  # Pre-Append ROOT to the path if it's not absolute
+    return ROOT + path if (path and path[0] != "/") else path
+
 # -- Settings
 
-SRC_CLASSES = ROOT + "data_proc/classes.csv"
-SRC_PROCESSED_FEATURES = ROOT + "data_proc/features_X.csv"
-SRC_PROCESSED_FEATURES_LABELS = ROOT + "data_proc/features_Y.csv"
 
-DST_MODEL_PATH = ROOT + 'model/trained_classifier_tmp.pickle'
+cfg_all = lib_commons.read_yaml(ROOT + "config/config.yaml")
+cfg = cfg_all["s4_train.py"]
+
+CLASSES = np.array(cfg_all["classes"])
+
+
+SRC_PROCESSED_FEATURES = par(cfg["input"]["processed_features"])
+SRC_PROCESSED_FEATURES_LABELS = par(cfg["input"]["processed_features_labels"])
+
+DST_MODEL_PATH = par(cfg["output"]["model_path"])
 
 # -- Functions
-
-
-def load_classes_features_and_labels():
-    ''' Load classes.csv, features_X.csv, features_Y.csv.
-        The filepath is defined under the `Settings` section.
-    '''
-    with open(SRC_CLASSES, 'r') as f:
-        classes = [str_class.rstrip() for str_class in f if str_class != '\n']
-    classes = np.array(classes)
-    features_X = np.loadtxt(SRC_PROCESSED_FEATURES, dtype=float)  # features
-    features_Y = np.loadtxt(SRC_PROCESSED_FEATURES_LABELS, dtype=int)  # labels
-    return classes, features_X, features_Y
 
 
 def evaluate_model(model, classes, tr_X, tr_Y, te_X, te_Y):
@@ -63,7 +66,7 @@ def evaluate_model(model, classes, tr_X, tr_Y, te_X, te_Y):
     # Time cost
     average_time = (time.time() - t0) / (len(tr_Y) + len(te_Y))
     print("Time cost for predicting one sample: "
-          "{:.3f} seconds".format(average_time))
+          "{:.5f} seconds".format(average_time))
 
     # Plot accuracy
     axis, cf = lib_plot.plot_confusion_matrix(
@@ -79,8 +82,9 @@ def main():
 
     # -- Load preprocessed data
     print("\nReading csv files of classes, features, and labels ...")
-    classes, X, Y = load_classes_features_and_labels()
-
+    X = np.loadtxt(SRC_PROCESSED_FEATURES, dtype=float)  # features
+    Y = np.loadtxt(SRC_PROCESSED_FEATURES_LABELS, dtype=int)  # labels
+    
     # -- Train-test split
     tr_X, te_X, tr_Y, te_Y = train_test_split(X, Y)
     print("\nAfter train-test split:")
@@ -95,7 +99,7 @@ def main():
 
     # -- Evaluate model
     print("\nStart evaluating model ...")
-    evaluate_model(model, classes, tr_X, tr_Y, te_X, te_Y)
+    evaluate_model(model, CLASSES, tr_X, tr_Y, te_X, te_Y)
 
     # -- Save model
     print("\nSave model to " + DST_MODEL_PATH)

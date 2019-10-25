@@ -1,0 +1,69 @@
+# Configurations for this project
+
+# Classes of the actions.
+# Warning: The name of training images folder should start with "${class}_".
+#     In src/s2_put_skeleton_txts_to_a_single_txt.py,
+#     The image whose label is not in `classes` will be filtered out. 
+classes: ['stand', 'walk', 'run', 'jump', 'sit', 'squat', 'kick', 'punch', 'wave']
+
+image_filename_format: "{:05d}.png"
+skeleton_filename_format: "{:05d}.txt"
+
+s1_get_skeletons_from_training_imgs.py:
+  openpose:
+    model: cmu # cmu or mobilenet_thin. "cmu" is more accurate but slower.
+    img_size: 656x368 #  656x368, or 432x368, 336x288. Bigger is more accurate.
+  input:
+    images_description_txt: data/source_images3/valid_images.txt
+    images_folder: data/source_images3/
+  output:
+    images_info_txt: data_proc/raw_skeletons/images_info.txt
+    detected_skeletons_folder: &skels_folder data_proc/raw_skeletons/skeleton_res/
+    viz_imgs_folders: data_proc/raw_skeletons/image_viz/
+
+s2_put_skeleton_txts_to_a_single_txt.py:
+  input:
+    # A folder of skeleton txts. Each txt corresponds to one image.
+    detected_skeletons_folder: *skels_folder
+  output:
+    # One txt containing all valid skeletons.
+    all_skeletons_txt: &skels_txt data_proc/raw_skeletons/skeletons_info.txt
+
+s3_preprocess_features.py:
+  input: 
+    all_skeletons_txt: *skels_txt
+  output:
+    processed_features: &features_x data_proc/features_X.csv
+    processed_features_labels: &features_y data_proc/features_Y.csv
+
+s4_train.py:
+  input:
+    processed_features: *features_x
+    processed_features_labels: *features_y
+  output:
+    model_path: model/trained_classifier_tmp.pickle
+
+s5_test.py:
+  # Input:
+  #   For the input data_type, data_path, and model_path,
+  #   please use the command line arguments.
+  # Output:
+  #   The result video and skeleton txts will be saved to
+  #       ${args.output_folder}/${DST_FOLDER_NAME}/${video_name}
+  #       ${args.output_folder}/${DST_FOLDER_NAME}/${skeleton_folder_name}/${skeleton_filename_format}
+  #   where `DST_FOLDER_NAME` is defined in the function `get_dst_folder_name`.
+  #   In short, the input video or folder will have the same output folder name;
+  #             the input webcam will have a time stamp as the folder name.
+  settings:
+    src_webcam_max_framerate: 10.0
+    src_video_sample_interval: 1
+
+    # openpose_model: mobilenet_thin
+    # openpose_img_size: 656x368
+    openpose_model: cmu
+    openpose_img_size: 432x368
+  
+  output:
+    video_name: "video.avi" # save the resultant video to file
+    video_fps: 10.0 # at what frame rate to write the output video
+    skeleton_folder_name: "skeletons/"

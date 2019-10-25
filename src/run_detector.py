@@ -243,7 +243,7 @@ def remove_skeletons_with_few_joints(skeletons):
 class MultiPersonClassifier(object):
     def __init__(self, LOAD_MODEL_PATH, action_labels):
         self.create_classifier = lambda human_id: ClassifierOnlineTest(
-            LOAD_MODEL_PATH, action_types = action_labels, human_id=human_id)
+            LOAD_MODEL_PATH, action_labels = action_labels, human_id=human_id)
         self.dict_id2clf = {} # human id -> classifier of this person
 
     def classify(self, dict_id2skeleton):
@@ -303,7 +303,7 @@ if __name__ == "__main__":
     # -- Loop through all images
     ith_img = 1
     while ith_img <= images_loader.num_images:
-        img, img_action_type, img_info = images_loader.read_image()
+        img, img_action_label, img_info = images_loader.read_image()
         img_disp = img.copy()
         
         print("\n\n========================================")
@@ -326,7 +326,7 @@ if __name__ == "__main__":
             else: # reserve only one skeleton
                 min_id = min(dict_id2skeleton.keys()) 
                 dict_id2skeleton = {min_id : dict_id2skeleton[min_id]}
-                dict_id2label = {min_id : img_action_type}
+                dict_id2label = {min_id : img_action_label}
                 print("Ground_truth label is :", dict_id2label[min_id])
 
         # -- Draw
@@ -357,7 +357,7 @@ if __name__ == "__main__":
             skel_to_save = [img_info + dict_id2skeleton[id].tolist() for id in ids]
 
 
-            lib_io.save_skeletons(SAVE_DETECTED_SKELETON_TO 
+            lib_io.save_listlist(SAVE_DETECTED_SKELETON_TO 
                 + lib_commons.int2str(ith_img, 5) + ".txt", skel_to_save)
             cv2.imwrite(SAVE_DETECTED_SKELETON_IMAGES_TO 
                 + lib_commons.int2str(ith_img, 5) + ".png", img_disp)
