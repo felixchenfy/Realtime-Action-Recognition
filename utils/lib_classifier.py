@@ -68,10 +68,12 @@ class ClassifierOfflineTrain(object):
         self.clf = self._choose_model("Neural Net")
 
     def predict(self, X):
+        ''' Predict the class index of the feature X '''
         Y_predict = self.clf.predict(self.pca.transform(X))
         return Y_predict
 
     def predict_and_evaluate(self, te_X, te_Y):
+        ''' Test model on test set and obtain accuracy '''
         te_Y_predict = self.predict(te_X)
         N = len(te_Y)
         n = sum(te_Y_predict == te_Y)
@@ -79,6 +81,7 @@ class ClassifierOfflineTrain(object):
         return accu, te_Y_predict
 
     def train(self, X, Y):
+        ''' Train model. The result is saved into self.clf '''
         n_components = min(NUM_FEATURES_FROM_PCA, X.shape[1])
         self.pca = PCA(n_components=n_components, whiten=True)
         self.pca.fit(X)
@@ -112,8 +115,9 @@ class ClassifierOfflineTrain(object):
             QuadraticDiscriminantAnalysis()]
 
     def _predict_proba(self, X):
+        ''' Predict the probability of feature X belonging to each of the class Y[i] '''
         Y_probs = self.clf.predict_proba(self.pca.transform(X))
-        return Y_probs
+        return Y_probs  # np.array with a length of len(classes)
 
 
 class ClassifierOnlineTest(object):
@@ -145,6 +149,7 @@ class ClassifierOnlineTest(object):
         self.scores = None
 
     def predict(self, skeleton):
+        ''' Predict the class (string) of the input raw skeleton '''
         LABEL_UNKNOWN = ""
         is_features_good, features = self.feature_generator.add_cur_skeleton(
             skeleton)
@@ -166,6 +171,9 @@ class ClassifierOnlineTest(object):
         return prediced_label
 
     def smooth_scores(self, curr_scores):
+        ''' Smooth the current prediction score
+            by taking the average with previous scores
+        '''
         self.scores_hist.append(curr_scores)
         DEQUE_MAX_SIZE = 2
         if len(self.scores_hist) > DEQUE_MAX_SIZE:

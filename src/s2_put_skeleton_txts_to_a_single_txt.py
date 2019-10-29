@@ -23,6 +23,10 @@ if True:  # Include project path
     CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
     sys.path.append(ROOT)
 
+    # import utils.lib_feature_proc # This is no needed,
+    #   because this script only transfer (part of) the data from many txts to a single txt,
+    #   without doing any data analsysis.
+
     import utils.lib_commons as lib_commons
 
 

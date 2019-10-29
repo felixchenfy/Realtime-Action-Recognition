@@ -11,6 +11,7 @@ import numpy as np
 import time
 import pickle
 import matplotlib.pyplot as plt
+import sklearn.model_selection
 from sklearn.metrics import classification_report
 
 if True:  # Include project path
@@ -22,7 +23,6 @@ if True:  # Include project path
 
     import utils.lib_plot as lib_plot
     import utils.lib_commons as lib_commons
-    from utils.lib_feature_proc import train_test_split
     from utils.lib_classifier import ClassifierOfflineTrain
 
 
@@ -46,6 +46,23 @@ DST_MODEL_PATH = par(cfg["output"]["model_path"])
 
 # -- Functions
 
+def train_test_split(X, Y, ratio_of_test_size):
+    ''' Split training data by ratio '''
+    IS_SPLIT_BY_SKLEARN_FUNC = True
+
+    # Use sklearn.train_test_split
+    if IS_SPLIT_BY_SKLEARN_FUNC:
+        RAND_SEED = 1
+        tr_X, te_X, tr_Y, te_Y = sklearn.model_selection.train_test_split(
+            X, Y, test_size=ratio_of_test_size, random_state=RAND_SEED)
+
+    # Make train/test the same.
+    else:
+        tr_X = np.copy(X)
+        tr_Y = Y.copy()
+        te_X = np.copy(X)
+        te_Y = Y.copy()
+    return tr_X, te_X, tr_Y, te_Y
 
 def evaluate_model(model, classes, tr_X, tr_Y, te_X, te_Y):
     ''' Evaluate accuracy and time cost '''

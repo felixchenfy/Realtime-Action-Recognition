@@ -69,6 +69,7 @@ if True:
 # Output
 if True:
     # This txt will store image info, such as index, action label, filename, etc.
+    # This file is saved but not used.
     DST_IMAGES_INFO_TXT = par(cfg["output"]["images_info_txt"])
 
     # Each txt will store the skeleton of each image
@@ -113,6 +114,7 @@ if __name__ == "__main__":
         img_folder=SRC_IMAGES_FOLDER,
         valid_imgs_txt=SRC_IMAGES_DESCRIPTION_TXT,
         img_filename_format=IMG_FILENAME_FORMAT)
+    # This file is not used.
     images_loader.save_images_info(filepath=DST_IMAGES_INFO_TXT)
     img_displayer = ImageDisplayer()
 

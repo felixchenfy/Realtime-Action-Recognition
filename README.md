@@ -19,6 +19,8 @@
 - [1. Algorithm](#1-algorithm)
 - [2. Install Dependency (OpenPose)](#2-install-dependency--openpose-)
 - [3. Program structure](#3-program-structure)
+  * [Diagram](#diagram)
+  * [Main scripts](#main-scripts)
 - [4. How to run: Inference](#4-how-to-run--inference)
   * [Introduction](#introduction)
   * [Test on video file](#test-on-video-file)
@@ -96,6 +98,35 @@ python run.py --model=mobilenet_thin --resize=432x368 --image=./images/p1.jpg
 
 # 3. Program structure
 
+## Diagram
+
+![](doc/system_diagram.png)
+
+Trouble shooting:
+  * How to change features?
+
+    In [utils/lib_feature_proc.py](utils/lib_feature_proc.py), in the `class FeatureGenerator`, change the function `def add_cur_skeleton`! 
+    
+    The function reads in a raw skeleton and outputs the feature generated from this raw skeleton as well as previous skeletons. The feature will then be saved to `features_X.csv` by the script [s3_preprocess_features.py](src/s3_preprocess_features.py) for the next training step.
+
+  * How to include joints of the head?
+
+    You need to change the aforementioned `add_cur_skeleton` function. 
+    
+    I suggest you to write a new function to extract the head features, and then append them to the returned variable(feature) of `add_cur_skeleton`.
+
+    Please read `def retrain_only_body_joints` in `utils/lib_feature_proc.py` if you want to add the head joints.
+
+  * How to change the classifier to RNN?
+
+    There are two major changes to do:
+    
+    First, change the aforementioned `add_cur_skeleton`. Instead of manually extracing time-serials features as does by the current script, you may simply stack the input skeleton with previous skeletons and then output it.
+
+    Second, change the `def __init__` and `def predict` function of `class ClassifierOfflineTrain` in [utils/lib_classifier.py](utils/lib_classifier.py) to add an RNN model.
+
+
+## Main scripts
 The 5 main scripts are under `src/`. They are named under the order of excecution:
 ```
 src/s1_get_skeletons_from_training_imgs.py    
@@ -124,7 +155,7 @@ s1_get_skeletons_from_training_imgs.py:
     images_description_txt: data/source_images3/valid_images.txt
     images_folder: data/source_images3/
   output:
-    images_info_txt: data_proc/raw_skeletons/images_info.txt
+    images_info_txt: data_proc/raw_skeletons/images_info.txt # This file is not used.
     detected_skeletons_folder: &skels_folder data_proc/raw_skeletons/skeleton_res/
     viz_imgs_folders: data_proc/raw_skeletons/image_viz/
 

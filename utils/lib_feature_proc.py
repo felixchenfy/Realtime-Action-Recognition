@@ -1,7 +1,5 @@
 ''' This script defines functions/class to process features:
 
-* def train_test_split
-
 * def extract_multi_frame_features
     Convert raw skeleton data into features extracted from multiple frames
     by calling `class FeatureGenerator`.
@@ -15,7 +13,6 @@
 import numpy as np
 import math
 from collections import deque
-import sklearn.model_selection
 
 if True:  # Include project path
     import sys
@@ -39,6 +36,13 @@ NaN = 0
 def retrain_only_body_joints(skeleton):
     ''' All skeleton operations in this script are done after this function.
     The joints in the head are all removed, and the neck becomes the 0th joint.
+    
+    If you comment out this function in `def add_cur_skeleton`,
+    then you need to change all the joint indices list below,
+    i.e. change NECK=0 to 1, change L_KNEE=8 to 9, etc.
+    Also, you will need to write some extra code to 
+    deal with the case when head joints are missing.
+
     '''
     return skeleton.copy()[2:2+13*2]
 
@@ -61,25 +65,6 @@ STAND_SKEL_NORMED = retrain_only_body_joints(
     get_a_normalized_standing_skeleton())
 
 # -- Functions
-
-
-def train_test_split(X, Y, ratio_of_test_size):
-    ''' Split training data by ratio '''
-    IS_SPLIT_BY_SKLEARN_FUNC = True
-
-    # Use sklearn.train_test_split
-    if IS_SPLIT_BY_SKLEARN_FUNC:
-        RAND_SEED = 1
-        tr_X, te_X, tr_Y, te_Y = sklearn.model_selection.train_test_split(
-            X, Y, test_size=ratio_of_test_size, random_state=RAND_SEED)
-
-    # Make train/test the same.
-    else:
-        tr_X = np.copy(X)
-        tr_Y = Y.copy()
-        te_X = np.copy(X)
-        te_Y = Y.copy()
-    return tr_X, te_X, tr_Y, te_Y
 
 
 def extract_multi_frame_features(

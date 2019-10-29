@@ -180,7 +180,7 @@ class ReadValidImagesAndActionTypesByTxt(object):
 
 
 def load_skeleton_data(filepath, classes):
-    ''' Load training data.
+    ''' Load training data from skeletons_info.txt.
     Some notations:
         N: number of valid data.
         P: feature dimension. Here P=36.

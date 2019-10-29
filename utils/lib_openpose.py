@@ -93,11 +93,18 @@ class SkeletonDetector(object):
         Arguments:
             image: RGB image with arbitrary size. It will be resized to (self._w, self._h).
         Returns:
-            humans: a class instance returned by the `TfPoseEstimator.inference`
-                    in `src/githubs/tf-pose-estimation/tf_pose/estimator.py`.
-                    There is no need to know what its content is.
-                    I've written a function `self.humans_to_skels_list` to extract the skeleton from it. 
+            humans {list of class Human}: 
+                `class Human` is defined in 
+                "src/githubs/tf-pose-estimation/tf_pose/estimator.py"
+                
+                The variable `humans` is returned by the function
+                `TfPoseEstimator.inference` which is defined in
+                `src/githubs/tf-pose-estimation/tf_pose/estimator.py`.
+
+                I've written a function `self.humans_to_skels_list` to 
+                extract the skeleton from this `class Human`. 
         '''
+
         self._cnt_image += 1
         if self._cnt_image == 1:
             self._image_h = image.shape[0]
