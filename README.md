@@ -278,7 +278,7 @@ First, you may read
 to know the training data format and the input and output of each script.
 
 Then, follow the following steps to do the training:
-* Collect your own data and label them, or use my data.
+* Collect your own data and label them, or use my data. [Here](https://github.com/felixchenfy/record_images_from_usbcam) is tool to record images from web camera.
 * If you are using your data, change the values of `classes` and `images_description_txt` and `images_folder` inside [config/config.yaml](config/config.yaml).
 * Depend on your need, you may change parameters in [config/config.yaml](config/config.yaml).
 * Finally, run the following scripts one by one:
