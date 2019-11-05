@@ -80,7 +80,7 @@ conda create -n tf tensorflow-gpu
 conda activate tf
 
 cd $MyRoot
-pip install -r requirements1.txt
+pip install -r requirements.txt
 conda install jupyter tqdm
 sudo apt install swig
 
