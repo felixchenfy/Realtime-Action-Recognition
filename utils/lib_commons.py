@@ -53,8 +53,8 @@ def get_filenames(path, use_sort=True, with_folder_path=False):
 
 
 def get_time_string():
-    ''' Get a formatted string time: `month-day-hour-minute-seconds`,
-        such as: `02-26-15-51-12`.
+    ''' Get a formatted string time: `month-day-hour-minute-seconds-miliseconds`,
+        such as: `02-26-15-51-12-106`.
     '''
     s = str(datetime.datetime.now())[5:].replace(
         ' ', '-').replace(":", '-').replace('.', '-')[:-3]
