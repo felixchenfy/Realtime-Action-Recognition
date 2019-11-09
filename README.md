@@ -245,7 +245,7 @@ python src/s5_test.py \
 
 
 ## Download my data
-Follow the instructions in [data/download_link.md](data/download_link.md) to download the data.
+Follow the instructions in [data/download_link.md](data/download_link.md) to download the data. Or, you can create your own. The data and labelling format are described below.
 
 ## Data format
 
@@ -266,7 +266,7 @@ In each paragraph,
 the 1st line is the data folder name, which should start with `"${class_name}_"`. 
 The 2nd and following lines specify the `staring index` and `ending index` of the video that corresponds to that class.
 
-Let's take the 1st paragraph of the above snapshot as an example: `jump` is the class, and the frames 52~59 & 72~79 of the video are used for training.
+Let's take the 1st paragraph of the above snapshot as an example: `jump` is the class, and the frames `52~59` & `72~79` of the video are used for training.
 
 ## Classes
 
