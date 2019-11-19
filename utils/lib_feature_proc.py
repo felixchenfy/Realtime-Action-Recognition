@@ -36,7 +36,7 @@ NaN = 0
 def retrain_only_body_joints(skeleton):
     ''' All skeleton operations in this script are done after this function.
     The joints in the head are all removed, and the neck becomes the 0th joint.
-    
+
     If you comment out this function in `def add_cur_skeleton`,
     then you need to change all the joint indices list below,
     i.e. change NECK=0 to 1, change L_KNEE=8 to 9, etc.
@@ -83,7 +83,7 @@ def extract_multi_frame_features(
         # If a new video clip starts, reset the feature generator
         if i == 0 or video_indices[i] != video_indices[i-1]:
             fg = FeatureGenerator(window_size, is_adding_noise)
-
+        
         # Get features
         success, features = fg.add_cur_skeleton(X[i, :])
         if success:  # True if (data length > 5) and (skeleton has enough joints)
@@ -91,8 +91,9 @@ def extract_multi_frame_features(
             Y_new.append(Y[i])
 
         # Print
-        if is_print and i % 2000 == 0:
+        if is_print and i % 1000 == 0:
             print(f"{i}/{N}", end=", ")
+            
     if is_print:
         print("")
     X_new = np.array(X_new)
@@ -170,21 +171,24 @@ class ProcFtr(object):
     @staticmethod
     def get_body_height(x):
         ''' Compute height of the body, which is defined as:
-            Height = (y_neck - y_thigh)
+            the distance between `neck` and `thigh`.
         '''
-        _, y0 = get_joint(x, NECK)
+        x0, y0 = get_joint(x, NECK)
 
         # Get average thigh height
-        _, y11 = get_joint(x, L_THIGH)
-        _, y12 = get_joint(x, R_THIGH)
+        x11, y11 = get_joint(x, L_THIGH)
+        x12, y12 = get_joint(x, R_THIGH)
         if y11 == NaN and y12 == NaN:  # Invalid data
             return 1.0
-        y11 = y12 if y11 == NaN else y11
-        y12 = y11 if y12 == NaN else y12
-        y1 = (y11 + y12) / 2
+        if y11 == NaN:
+            x1, y1 = x12, y12
+        elif y12 == NaN:
+            x1, y1 = x11, y11
+        else:
+            x1, y1 = (x11 + x12) / 2, (y11 + y12) / 2
 
         # Get body height
-        height = abs(y0 - y1)
+        height = ((x0-x1)**2 + (y0-y1)**2)**(0.5)
         return height
 
     @staticmethod
