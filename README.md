@@ -81,9 +81,9 @@ conda activate tf
 
 cd $MyRoot
 pip install -r requirements.txt
-conda install jupyter tqdm
+pip install jupyter tqdm
+pip install tensorflow-gpu==1.13.1
 sudo apt install swig
-
 pip install "git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI"
 
 cd $MyRoot/src/githubs/tf-pose-estimation/tf_pose/pafprocess

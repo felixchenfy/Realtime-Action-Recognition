@@ -45,7 +45,7 @@ if True:
 
 
 # -- Settings
-NUM_FEATURES_FROM_PCA = 100
+NUM_FEATURES_FROM_PCA = 50
 
 # -- Classes
 
@@ -109,7 +109,7 @@ class ClassifierOfflineTrain(object):
             DecisionTreeClassifier(max_depth=5),
             RandomForestClassifier(
                 max_depth=30, n_estimators=100, max_features="auto"),
-            MLPClassifier((50, 50, 50)),  # Neural Net
+            MLPClassifier((20, 30, 40)),  # Neural Net
             AdaBoostClassifier(),
             GaussianNB(),
             QuadraticDiscriminantAnalysis()]

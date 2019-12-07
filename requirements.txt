@@ -11,3 +11,4 @@ IPython[all]
 simplejson
 sklearn
 slidingwindow
+pyyaml
