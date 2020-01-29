@@ -223,7 +223,7 @@ class ImageDisplayer(object):
 
     def __init__(self):
         self._window_name = "cv2_display_window"
-        cv2.namedWindow(self._window_name)
+        cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL)
 
     def display(self, image, wait_key_ms=1):
         cv2.imshow(self._window_name, image)

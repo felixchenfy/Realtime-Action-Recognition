@@ -164,9 +164,7 @@ class ProcFtr(object):
     @staticmethod
     def has_neck_and_thigh(x):
         ''' Check if a skeleton has a neck and at least one thigh '''
-        def check_(x0, idx):
-            return x0[idx] != 0 and x0[idx+1] != 0
-        return check_(x, NECK) and (check_(x, L_THIGH) or check_(x, R_THIGH))
+        return check_joint(x, NECK) and (check_joint(x, L_THIGH) or check_joint(x, R_THIGH))
 
     @staticmethod
     def get_body_height(x):
