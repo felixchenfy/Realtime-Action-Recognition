@@ -61,6 +61,8 @@ First, Python >= 3.6.
 
 I used the OpenPose from this Github: [tf-pose-estimation](https://github.com/ildoonet/tf-pose-estimation). First download it:
 
+[Update on 2021 June: Looks like tf-pose-estimation was deleted by the author. I will try to fix it when I have time in 2021 June/July. Sorry for the inconvenience! I should have avoided this by forking that repo.]
+
 ```
 export MyRoot=$PWD
 cd src/githubs  
