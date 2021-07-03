@@ -56,47 +56,69 @@ For more details about how the features are extracted, please see my [report](ht
 
 
 # 2. Install Dependency (OpenPose)
+We need Python >= 3.6.
 
-First, Python >= 3.6.
+## 2.1. Download tf-pose-estimation
 
-I used the OpenPose from this Github: [tf-pose-estimation](https://github.com/ildoonet/tf-pose-estimation). First download it:
+This project uses a OpenPose program developped by [ildoonet](https://github.com/ildoonet). The source project has been deleted. I've managed to fork it to here: [tf-pose-estimation](https://github.com/felixchenfy/ildoonet-tf-pose-estimation). 
 
-[Update on 2021 June: Looks like tf-pose-estimation was deleted by the author. I will try to fix it when I have time in 2021 June/July. Sorry for the inconvenience! I should have avoided this by forking that repo.]
-
-```
+Please download it:
+```bash
 export MyRoot=$PWD
 cd src/githubs  
-git clone https://github.com/ildoonet/tf-pose-estimation  
+git clone https://github.com/felixchenfy/ildoonet-tf-pose-estimation
+mv ildoonet-tf-pose-estimation tf-pose-estimation
 ```
 
-Follow its tutorial [here](https://github.com/ildoonet/tf-pose-estimation#install-1) to download the "cmu" model. As for the "mobilenet_thin", it's already inside the folder.  
+## 2.2. Download pretrained models
+The mobilenet_thin models are already included in the project. No need to download. See folder:
+```
+src/githubs/tf-pose-estimation/models/graph✗ ls
+cmu  mobilenet_thin  mobilenet_v2_large  mobilenet_v2_small
+```
 
+If you want to use the original OpenPose model which is named "cmu" here, you need to download it: 
 ```
-$ cd tf-pose-estimation/models/graph/cmu  
-$ bash download.sh  
+cd $MyRoot/src/githubs/tf-pose-estimation/models/graph/cmu  
+bash download.sh  
 ```
 
-Then install dependencies. I listed my installation steps as bellow:
-```
+## 2.3. Insteall libraries
+Basically you have to follow the tutorial of `tf-pose-estimation` project. If you've setup the env for that project, then it's almost the same env to run my project.
+
+Please follow its tutorial [here](https://github.com/felixchenfy/ildoonet-tf-pose-estimation#install). I've copied what I ran to below:
+```bash
 conda create -n tf tensorflow-gpu
 conda activate tf
 
-cd $MyRoot
-pip install -r requirements.txt
-pip install jupyter tqdm
-pip install tensorflow-gpu==1.13.1
-sudo apt install swig
-pip install "git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI"
+cd $MyRoot/src/githubs/tf-pose-estimation
+pip3 install -r requirements.txt
+pip3 install jupyter tqdm
 
+# Install tensorflow.
+# You may need to take a few tries and select the version that is compatible with your cuDNN. If the version mismatches, you might get this error: "Error : Failed to get convolution algorithm."
+pip3 install tensorflow-gpu==1.13.1
+
+# Compile c++ library as described [here](https://github.com/felixchenfy/ildoonet-tf-pose-estimation#install-1):
+sudo apt install swig
+pip3 install "git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI"
 cd $MyRoot/src/githubs/tf-pose-estimation/tf_pose/pafprocess
 swig -python -c++ pafprocess.i && python3 setup.py build_ext --inplace
 ```
 
+Then install some small libraries used by me:
+```bash
+cd $MyRoot
+pip3 install -r requirements.txt
+```
+
+## 2.4. Verify installation
 Make sure you can successfully run its demo examples:
 ```
 cd $MyRoot/src/githubs/tf-pose-estimation
 python run.py --model=mobilenet_thin --resize=432x368 --image=./images/p1.jpg
 ```
+If you encounter error, you may try to search in google or `tf-pose-estimation`'s issue. The problem is probably due to the dependency of that project.
 
 # 3. Program structure
 
